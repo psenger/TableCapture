@@ -23,6 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var menu: NSMenu?
     var helpWindow: NSWindow?
+    var tableExtractor: TableExtractor = AppleVisionExtractor()
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the status item (menu bar icon)
@@ -165,26 +166,61 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     // MARK: - Image Processors
-    
+
     func processAsCSV(at url: URL) {
         print("Processing image as CSV at: \(url.path)")
-        
-        let alert = NSAlert()
-        alert.messageText = "CSV Capture Complete!"
-        alert.informativeText = "Image will be converted to CSV format."
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
+
+        tableExtractor.extractTable(from: url, format: .csv) { result in
+            DispatchQueue.main.async {
+                self.handleExtractionResult(result, format: "CSV")
+            }
+        }
     }
-    
+
     func processAsMarkdown(at url: URL) {
         print("Processing image as Markdown Table at: \(url.path)")
-        
-        let alert = NSAlert()
-        alert.messageText = "Markdown Table Capture Complete!"
-        alert.informativeText = "Image will be converted to Markdown table format."
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
+
+        tableExtractor.extractTable(from: url, format: .markdown) { result in
+            DispatchQueue.main.async {
+                self.handleExtractionResult(result, format: "Markdown")
+            }
+        }
+    }
+
+    // MARK: - Result Handling
+
+    func handleExtractionResult(_ result: Result<String, Error>, format: String) {
+        switch result {
+        case .success(let tableData):
+            // Copy to clipboard
+            copyToClipboard(tableData)
+
+            // Show success alert
+            let alert = NSAlert()
+            alert.messageText = "\(format) Table Extracted!"
+            alert.informativeText = "Table has been copied to your clipboard."
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+
+            print("Successfully extracted table:\n\(tableData)")
+
+        case .failure(let error):
+            // Show error alert
+            let alert = NSAlert()
+            alert.messageText = "Table Extraction Failed"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .critical
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+
+            print("Error extracting table: \(error)")
+        }
+    }
+
+    func copyToClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
     }
 }

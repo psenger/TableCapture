@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		F7157C922EC1AF610002FD78 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = F7157C912EC1AF560002FD78 /* README.md */; };
-		F7157CA22EC1B2280002FD78 /* LISCENSE in Sources */ = {isa = PBXBuildFile; fileRef = F7157CA12EC1B21D0002FD78 /* LISCENSE */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -33,7 +32,6 @@
 		F7157C712EC1A7580002FD78 /* TableCaptureTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TableCaptureTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7157C7B2EC1A7580002FD78 /* TableCaptureUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TableCaptureUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7157C912EC1AF560002FD78 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		F7157CA12EC1B21D0002FD78 /* LISCENSE */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LISCENSE; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -82,7 +80,6 @@
 		F7157C5B2EC1A7560002FD78 = {
 			isa = PBXGroup;
 			children = (
-				F7157CA12EC1B21D0002FD78 /* LISCENSE */,
 				F7157C912EC1AF560002FD78 /* README.md */,
 				F7157C662EC1A7560002FD78 /* TableCapture */,
 				F7157C742EC1A7580002FD78 /* TableCaptureTests */,
@@ -246,7 +243,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F7157CA22EC1B2280002FD78 /* LISCENSE in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
