@@ -1,0 +1,190 @@
+//
+//  TableCaptureApp.swift
+//  TableCapture
+//
+//  Created by Philip A Senger on 10/11/2025.
+//
+
+import SwiftUI
+import ScreenCaptureKit
+
+@main
+struct TableCaptureApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    var body: some Scene {
+        Settings {
+            EmptyView()
+        }
+    }
+}
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var statusItem: NSStatusItem?
+    var menu: NSMenu?
+    var helpWindow: NSWindow?
+    
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Create the status item (menu bar icon)
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        
+        if let button = statusItem?.button {
+            button.image = NSImage(systemSymbolName: "tablecells", accessibilityDescription: "TableCapture")
+            button.action = #selector(menuButtonClicked)
+            button.target = self
+        }
+        
+        // Create the menu - NOTE: Changed action selectors here
+        menu = NSMenu()
+        menu?.addItem(NSMenuItem(title: "Capture CSV", action: #selector(captureCsv), keyEquivalent: "c"))
+        menu?.addItem(NSMenuItem(title: "Capture Markdown Table", action: #selector(captureMarkdown), keyEquivalent: "m"))
+        menu?.addItem(NSMenuItem.separator())
+        menu?.addItem(NSMenuItem(title: "Help", action: #selector(showHelp), keyEquivalent: "h"))
+        menu?.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
+        
+        statusItem?.menu = menu
+    }
+    
+    @objc func menuButtonClicked() {
+        statusItem?.menu = menu
+    }
+    
+    @objc func captureCsv() {
+        captureScreen(processor: processAsCSV)
+    }
+    
+    @objc func captureMarkdown() {
+        captureScreen(processor: processAsMarkdown)
+    }
+    
+    func captureScreen(processor: @escaping (URL) -> Void) {
+        print("Capture screen clicked!")
+        
+        checkScreenRecordingPermission { hasPermission in
+            if hasPermission {
+                self.performScreenCapture(processor: processor)
+            } else {
+                self.showPermissionAlert()
+            }
+        }
+    }
+    
+    @objc func showHelp() {
+        if helpWindow == nil {
+            let helpView = HelpView()
+            let hostingController = NSHostingController(rootView: helpView)
+            
+            helpWindow = NSWindow(contentViewController: hostingController)
+            helpWindow?.title = "TableCapture Help"
+            helpWindow?.styleMask = [.titled, .closable, .resizable]
+            helpWindow?.center()
+            helpWindow?.setFrameAutosaveName("HelpWindow")
+        }
+        
+        helpWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @objc func quit() {
+        NSApplication.shared.terminate(nil)
+    }
+    
+    // MARK: - Screen Recording Permission
+    
+    func checkScreenRecordingPermission(completion: @escaping (Bool) -> Void) {
+        if #available(macOS 12.3, *) {
+            Task {
+                do {
+                    let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+                    completion(!content.displays.isEmpty)
+                } catch {
+                    completion(false)
+                }
+            }
+        } else {
+            completion(true)
+        }
+    }
+    
+    func showPermissionAlert() {
+        let alert = NSAlert()
+        alert.messageText = "Screen Recording Permission Required"
+        alert.informativeText = """
+        TableCapture needs permission to capture your screen.
+        
+        Please go to:
+        System Settings → Privacy & Security → Screen Recording
+        
+        Then enable TableCapture and restart the app.
+        """
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Cancel")
+        
+        if alert.runModal() == .alertFirstButtonReturn {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+    
+    // MARK: - Screen Capture
+    
+    func performScreenCapture(processor: @escaping (URL) -> Void) {
+        statusItem?.menu = nil
+        
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("capture.png")
+        
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        task.arguments = [
+            "-i",
+            "-o",
+            tempURL.path
+        ]
+        
+        task.terminationHandler = { process in
+            DispatchQueue.main.async {
+                if FileManager.default.fileExists(atPath: tempURL.path) {
+                    print("Screenshot saved to: \(tempURL.path)")
+                    processor(tempURL)  // Call the passed-in processor
+                } else {
+                    print("User cancelled screenshot")
+                }
+                
+                self.statusItem?.menu = self.menu
+            }
+        }
+        
+        do {
+            try task.run()
+        } catch {
+            print("Error capturing screen: \(error)")
+            statusItem?.menu = menu
+        }
+    }
+    
+    // MARK: - Image Processors
+    
+    func processAsCSV(at url: URL) {
+        print("Processing image as CSV at: \(url.path)")
+        
+        let alert = NSAlert()
+        alert.messageText = "CSV Capture Complete!"
+        alert.informativeText = "Image will be converted to CSV format."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+    
+    func processAsMarkdown(at url: URL) {
+        print("Processing image as Markdown Table at: \(url.path)")
+        
+        let alert = NSAlert()
+        alert.messageText = "Markdown Table Capture Complete!"
+        alert.informativeText = "Image will be converted to Markdown table format."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+}
