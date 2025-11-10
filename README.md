@@ -7,6 +7,43 @@ A lightweight macOS menu bar app that captures screenshots of tables and convert
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 
+## Building a Release
+
+### Creating a Release Candidate
+
+1. **Build for Release in Xcode**
+   - Select **Product → Archive** from the menu
+   - Wait for the archive to complete
+   - In the Organizer window that appears, click **Distribute App**
+   - Choose **Copy App** and save it to a location (e.g., Desktop)
+
+2. **Locate the .app Bundle**
+   - Find `TableCapture.app` in the exported location
+
+3. **Create a DMG Installer**
+   ```bash
+   hdiutil create -volname "TableCapture" -srcfolder TableCapture.app -ov -format UDZO TableCapture.dmg
+   ```
+   
+   This creates a compressed disk image that users can download and mount.
+
+4. **Create a GitHub Release**
+   - Go to your repository → **Releases**
+   - Click **Draft a new release**
+   - Create a new tag (e.g., `v1.0.0`)
+   - Add release notes
+   - Upload the `TableCapture.dmg` file
+   - Publish the release
+
+### Optional: Code Signing & Notarization
+
+For wider distribution outside development, you'll want to:
+- Sign with a **Developer ID Application** certificate
+- Notarize the app with Apple using `notarytool`
+- Staple the notarization ticket to the DMG
+
+This prevents Gatekeeper warnings when users download your app.
+
 ## Development
 
 ### macOS Security & Permissions Issues
