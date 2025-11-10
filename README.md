@@ -7,9 +7,24 @@ A lightweight macOS menu bar app that captures screenshots of tables and convert
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 
-## Building a Release
+### Installing the App
 
-### Creating a Release Candidate
+Since this app is not signed with a paid Developer ID certificate, macOS will show a security warning on first launch.
+
+**To install:**
+1. Download and open the `TableCapture.dmg`
+2. Drag `TableCapture.app` to your Applications folder
+3. **Right-click** the app → **Open** (don't double-click!)
+4. Click **Open** when prompted
+5. Grant Screen Recording permission in System Settings
+
+After the first launch, you can open it normally.
+ 
+## Development
+
+### Building a Release
+
+#### Creating a Release Candidate
 
 1. **Build for Release in Xcode**
    - Select **Product → Archive** from the menu
@@ -34,17 +49,6 @@ A lightweight macOS menu bar app that captures screenshots of tables and convert
    - Add release notes
    - Upload the `TableCapture.dmg` file
    - Publish the release
-
-### Optional: Code Signing & Notarization
-
-For wider distribution outside development, you'll want to:
-- Sign with a **Developer ID Application** certificate
-- Notarize the app with Apple using `notarytool`
-- Staple the notarization ticket to the DMG
-
-This prevents Gatekeeper warnings when users download your app.
-
-## Development
 
 ### macOS Security & Permissions Issues
 
