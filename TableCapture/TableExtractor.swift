@@ -57,42 +57,38 @@ class AppleVisionExtractor: TableExtractor {
         }
 
         // Create Vision text recognition request
-        let request = VNRecognizeTextRequest { request, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
+        let textRequest = VNRecognizeTextRequest()
+        textRequest.recognitionLevel = .accurate
+        textRequest.usesLanguageCorrection = true
 
-            guard let observations = request.results as? [VNRecognizedTextObservation], !observations.isEmpty else {
-                completion(.failure(TableExtractionError.noOutput))
-                return
-            }
-
-            // Extract and structure the table
-            let table = self.buildTableStructure(from: observations)
-
-            // Format output
-            let output: String
-            switch format {
-            case .csv:
-                output = self.formatAsCSV(table)
-            case .markdown:
-                output = self.formatAsMarkdown(table)
-            }
-
-            completion(.success(output))
-        }
-
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
-
-        // Perform OCR
+        // Perform text recognition
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         do {
-            try handler.perform([request])
+            try handler.perform([textRequest])
         } catch {
             completion(.failure(error))
+            return
         }
+
+        // Get results
+        guard let textObservations = textRequest.results as? [VNRecognizedTextObservation], !textObservations.isEmpty else {
+            completion(.failure(TableExtractionError.noOutput))
+            return
+        }
+
+        // Extract and structure the table using improved column detection
+        let table = self.buildTableStructure(from: textObservations)
+
+        // Format output
+        let output: String
+        switch format {
+        case .csv:
+            output = self.formatAsCSV(table)
+        case .markdown:
+            output = self.formatAsMarkdown(table)
+        }
+
+        completion(.success(output))
     }
 
     // MARK: - Table Structure Detection
@@ -103,6 +99,7 @@ class AppleVisionExtractor: TableExtractor {
         let y: CGFloat
         let width: CGFloat
         let height: CGFloat
+        var column: Int? = nil
     }
 
     private func buildTableStructure(from observations: [VNRecognizedTextObservation]) -> [[String]] {
@@ -124,49 +121,109 @@ class AppleVisionExtractor: TableExtractor {
 
         // Sort by Y (top to bottom) - Vision uses bottom-left origin
         cells.sort { $0.y > $1.y }
-
-        // Group cells into rows based on Y coordinate proximity
-        var rows: [[TextCell]] = []
-        var currentRow: [TextCell] = []
-        var lastY: CGFloat?
-
-        let rowThreshold: CGFloat = 0.015  // 1.5% of image height tolerance for same row
-
+        
+        // Step 1: Detect column boundaries by analyzing X positions
+        let columnBoundaries = detectColumnBoundaries(from: cells)
+        
+        // Step 2: Assign each cell to a column
+        for i in 0..<cells.count {
+            let columnIndex = findColumn(for: cells[i].x, in: columnBoundaries)
+            cells[i] = TextCell(
+                text: cells[i].text,
+                x: cells[i].x,
+                y: cells[i].y,
+                width: cells[i].width,
+                height: cells[i].height,
+                column: columnIndex
+            )
+        }
+        
+        // Step 3: Group into rows, merging cells in the same column that are close together
+        return buildRowsWithMergedCells(cells: cells, columnCount: columnBoundaries.count)
+    }
+    
+    // Detect where columns start by clustering X positions
+    private func detectColumnBoundaries(from cells: [TextCell]) -> [CGFloat] {
+        // Collect all X positions
+        let xPositions = cells.map { $0.x }.sorted()
+        
+        guard !xPositions.isEmpty else { return [] }
+        
+        // Cluster X positions - positions within 5% are same column
+        let threshold: CGFloat = 0.05
+        var columns: [CGFloat] = [xPositions[0]]
+        
+        for x in xPositions {
+            let lastColumn = columns.last!
+            if abs(x - lastColumn) > threshold {
+                columns.append(x)
+            }
+        }
+        
+        return columns
+    }
+    
+    // Find which column this X position belongs to
+    private func findColumn(for x: CGFloat, in boundaries: [CGFloat]) -> Int {
+        for (index, boundary) in boundaries.enumerated() {
+            if abs(x - boundary) < 0.05 { // 5% threshold
+                return index
+            }
+        }
+        // Return closest column
+        let distances = boundaries.enumerated().map { (index, boundary) in
+            (index, abs(x - boundary))
+        }
+        return distances.min(by: { $0.1 < $1.1 })?.0 ?? 0
+    }
+    
+    // Build rows while merging cells that belong together (same column, vertically adjacent)
+    private func buildRowsWithMergedCells(cells: [TextCell], columnCount: Int) -> [[String]] {
+        guard !cells.isEmpty else { return [] }
+        
+        var rows: [[String]] = []
+        var currentRowCells: [Int: String] = [:] // column index -> merged text
+        var lastY: CGFloat = cells[0].y
+        let rowThreshold: CGFloat = 0.02 // 2% threshold for same row
+        
         for cell in cells {
-            if let prevY = lastY {
-                let yDiff = abs(cell.y - prevY)
-
-                if yDiff < rowThreshold {
-                    // Same row
-                    currentRow.append(cell)
+            let yDiff = abs(cell.y - lastY)
+            
+            // If Y difference is small, it's likely part of the same logical row
+            if yDiff < rowThreshold {
+                // Merge text in the same column
+                if let existingText = currentRowCells[cell.column ?? 0] {
+                    currentRowCells[cell.column ?? 0] = existingText + " " + cell.text
                 } else {
-                    // New row
-                    if !currentRow.isEmpty {
-                        rows.append(currentRow)
-                    }
-                    currentRow = [cell]
+                    currentRowCells[cell.column ?? 0] = cell.text
                 }
             } else {
-                // First cell
-                currentRow = [cell]
+                // New row - save the previous one
+                if !currentRowCells.isEmpty {
+                    rows.append(buildRowArray(from: currentRowCells, columnCount: columnCount))
+                }
+                
+                // Start new row
+                currentRowCells = [cell.column ?? 0: cell.text]
+                lastY = cell.y
             }
-
-            lastY = cell.y
         }
-
-        // Add last row
-        if !currentRow.isEmpty {
-            rows.append(currentRow)
+        
+        // Add the last row
+        if !currentRowCells.isEmpty {
+            rows.append(buildRowArray(from: currentRowCells, columnCount: columnCount))
         }
-
-        // Sort cells within each row by X coordinate (left to right)
-        var table: [[String]] = []
-        for row in rows {
-            let sortedRow = row.sorted { $0.x < $1.x }
-            table.append(sortedRow.map { $0.text })
+        
+        return rows
+    }
+    
+    // Convert dictionary of column->text into array, filling gaps with empty strings
+    private func buildRowArray(from cellDict: [Int: String], columnCount: Int) -> [String] {
+        var row: [String] = []
+        for i in 0..<columnCount {
+            row.append(cellDict[i] ?? "")
         }
-
-        return table
+        return row
     }
 
     // MARK: - Output Formatting

@@ -23,6 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var menu: NSMenu?
     var helpWindow: NSWindow?
+    var editorWindow: NSWindow?
     var tableExtractor: TableExtractor = AppleVisionExtractor()
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -169,22 +170,49 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func processAsCSV(at url: URL) {
         print("Processing image as CSV at: \(url.path)")
-
-        tableExtractor.extractTable(from: url, format: .csv) { result in
-            DispatchQueue.main.async {
-                self.handleExtractionResult(result, format: "CSV")
-            }
-        }
+        showTableEditor(imageURL: url, format: .csv)
     }
 
     func processAsMarkdown(at url: URL) {
         print("Processing image as Markdown Table at: \(url.path)")
-
-        tableExtractor.extractTable(from: url, format: .markdown) { result in
-            DispatchQueue.main.async {
-                self.handleExtractionResult(result, format: "Markdown")
-            }
+        showTableEditor(imageURL: url, format: .markdown)
+    }
+    
+    func showTableEditor(imageURL: URL, format: TableFormat) {
+        guard let image = NSImage(contentsOf: imageURL) else {
+            let alert = NSAlert()
+            alert.messageText = "Failed to Load Image"
+            alert.informativeText = "Could not load the captured screenshot."
+            alert.alertStyle = .critical
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+            return
         }
+        
+        let editorView = TableEditorView(
+            image: image,
+            format: format,
+            onComplete: { [weak self] result in
+                self?.editorWindow?.close()
+                self?.editorWindow = nil
+                self?.handleExtractionResult(result, format: format == .csv ? "CSV" : "Markdown")
+            },
+            onCancel: { [weak self] in
+                self?.editorWindow?.close()
+                self?.editorWindow = nil
+            }
+        )
+        
+        let hostingController = NSHostingController(rootView: editorView)
+        
+        editorWindow = NSWindow(contentViewController: hostingController)
+        editorWindow?.title = "Table Editor"
+        editorWindow?.styleMask = [.titled, .closable, .resizable]
+        editorWindow?.setContentSize(NSSize(width: 800, height: 600))
+        editorWindow?.center()
+        
+        editorWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     // MARK: - Result Handling
