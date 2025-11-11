@@ -36,10 +36,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.target = self
         }
         
-        // Create the menu - NOTE: Changed action selectors here
+        // Create the menu
         menu = NSMenu()
-        menu?.addItem(NSMenuItem(title: "Capture CSV", action: #selector(captureCsv), keyEquivalent: "c"))
-        menu?.addItem(NSMenuItem(title: "Capture Markdown Table", action: #selector(captureMarkdown), keyEquivalent: "m"))
+        menu?.addItem(NSMenuItem(title: "Capture", action: #selector(capture), keyEquivalent: "c"))
         menu?.addItem(NSMenuItem.separator())
         menu?.addItem(NSMenuItem(title: "Help", action: #selector(showHelp), keyEquivalent: "h"))
         menu?.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
@@ -51,20 +50,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem?.menu = menu
     }
     
-    @objc func captureCsv() {
-        captureScreen(processor: processAsCSV)
-    }
-    
-    @objc func captureMarkdown() {
-        captureScreen(processor: processAsMarkdown)
-    }
-    
-    func captureScreen(processor: @escaping (URL) -> Void) {
+    @objc func capture() {
         print("Capture screen clicked!")
-        
+
         checkScreenRecordingPermission { hasPermission in
             if hasPermission {
-                self.performScreenCapture(processor: processor)
+                self.performScreenCapture()
             } else {
                 self.showPermissionAlert()
             }
@@ -131,12 +122,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     // MARK: - Screen Capture
-    
-    func performScreenCapture(processor: @escaping (URL) -> Void) {
+
+    func performScreenCapture() {
         statusItem?.menu = nil
-        
+
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("capture.png")
-        
+
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
         task.arguments = [
@@ -144,20 +135,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             "-o",
             tempURL.path
         ]
-        
+
         task.terminationHandler = { process in
             DispatchQueue.main.async {
                 if FileManager.default.fileExists(atPath: tempURL.path) {
                     print("Screenshot saved to: \(tempURL.path)")
-                    processor(tempURL)  // Call the passed-in processor
+                    self.showTableEditor(imageURL: tempURL)
                 } else {
                     print("User cancelled screenshot")
                 }
-                
+
                 self.statusItem?.menu = self.menu
             }
         }
-        
+
         do {
             try task.run()
         } catch {
@@ -165,20 +156,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             statusItem?.menu = menu
         }
     }
-    
-    // MARK: - Image Processors
 
-    func processAsCSV(at url: URL) {
-        print("Processing image as CSV at: \(url.path)")
-        showTableEditor(imageURL: url, format: .csv)
-    }
+    // MARK: - Table Editor
 
-    func processAsMarkdown(at url: URL) {
-        print("Processing image as Markdown Table at: \(url.path)")
-        showTableEditor(imageURL: url, format: .markdown)
-    }
-    
-    func showTableEditor(imageURL: URL, format: TableFormat) {
+    func showTableEditor(imageURL: URL) {
         guard let image = NSImage(contentsOf: imageURL) else {
             let alert = NSAlert()
             alert.messageText = "Failed to Load Image"
@@ -191,8 +172,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let editorView = TableEditorView(
             image: image,
-            format: format,
-            onComplete: { [weak self] result in
+            onComplete: { [weak self] result, format in
                 self?.editorWindow?.close()
                 self?.editorWindow = nil
                 self?.handleExtractionResult(result, format: format == .csv ? "CSV" : "Markdown")

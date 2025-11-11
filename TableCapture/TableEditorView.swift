@@ -12,15 +12,13 @@ import Combine
 
 struct TableEditorView: View {
     let image: NSImage
-    let format: TableFormat
-    let onComplete: (Result<String, Error>) -> Void
+    let onComplete: (Result<String, Error>, TableFormat) -> Void
     let onCancel: () -> Void
-    
+
     @StateObject private var viewModel: TableEditorViewModel
-    
-    init(image: NSImage, format: TableFormat, onComplete: @escaping (Result<String, Error>) -> Void, onCancel: @escaping () -> Void) {
+
+    init(image: NSImage, onComplete: @escaping (Result<String, Error>, TableFormat) -> Void, onCancel: @escaping () -> Void) {
         self.image = image
-        self.format = format
         self.onComplete = onComplete
         self.onCancel = onCancel
         _viewModel = StateObject(wrappedValue: TableEditorViewModel(image: image))
@@ -70,11 +68,21 @@ struct TableEditorView: View {
                         onCancel()
                     }
                     .keyboardShortcut(.cancelAction)
-                    
-                    Button("Extract Table") {
-                        viewModel.extractTable(format: format, completion: onComplete)
+
+                    Button("Extract as CSV") {
+                        viewModel.extractTable(format: .csv) { result in
+                            onComplete(result, .csv)
+                        }
                     }
-                    .keyboardShortcut(.defaultAction)
+                    .keyboardShortcut("c", modifiers: [.command])
+                    .disabled(viewModel.verticalLines.isEmpty && viewModel.horizontalLines.isEmpty)
+
+                    Button("Extract as Markdown") {
+                        viewModel.extractTable(format: .markdown) { result in
+                            onComplete(result, .markdown)
+                        }
+                    }
+                    .keyboardShortcut("m", modifiers: [.command])
                     .buttonStyle(.borderedProminent)
                     .disabled(viewModel.verticalLines.isEmpty && viewModel.horizontalLines.isEmpty)
                 }
@@ -153,6 +161,12 @@ struct GridOverlayView: View {
             let offsetY = (geometry.size.height - scaledHeight) / 2
             
             ZStack {
+                // Red border box around image
+                Rectangle()
+                    .stroke(Color.red.opacity(0.6), lineWidth: 3)
+                    .frame(width: scaledWidth, height: scaledHeight)
+                    .position(x: offsetX + scaledWidth / 2, y: offsetY + scaledHeight / 2)
+
                 // Vertical lines with drag handles
                 ForEach(Array(verticalLines.enumerated()), id: \.offset) { index, xPos in
                     GridLineView(
@@ -238,6 +252,10 @@ struct GridLineView: View {
                     .gesture(
                         DragGesture()
                             .onChanged { value in
+                                if !isDragging {
+                                    // Select on first drag
+                                    onSelect()
+                                }
                                 isDragging = true
                                 let newX = (value.location.x - offsetX) / scaledWidth
                                 onDrag(newX)
@@ -275,6 +293,10 @@ struct GridLineView: View {
                     .gesture(
                         DragGesture()
                             .onChanged { value in
+                                if !isDragging {
+                                    // Select on first drag
+                                    onSelect()
+                                }
                                 isDragging = true
                                 let newY = 1 - ((value.location.y - offsetY) / scaledHeight)
                                 onDrag(newY)
@@ -307,10 +329,12 @@ class TableEditorViewModel: ObservableObject {
     
     private let extractor = AppleVisionExtractor()
     
-    init(image: NSImage) {
+    init(image: NSImage, autoDetectGrid: Bool = true) {
         self.originalImage = image
         self.displayImage = image
-        detectInitialGrid()
+        if autoDetectGrid {
+            detectInitialGrid()
+        }
     }
     
     func detectInitialGrid() {
@@ -475,24 +499,36 @@ class TableEditorViewModel: ObservableObject {
     func extractTable(format: TableFormat, completion: @escaping (Result<String, Error>) -> Void) {
         // Create cells based on grid lines
         let cells = createCellsFromGrid()
-        
+
         // Use Vision to extract text
         guard let cgImage = originalImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             completion(.failure(TableExtractionError.extractionFailed("Failed to load image")))
             return
         }
-        
+
+        // Upscale image if needed for better OCR accuracy
+        // Vision OCR needs text to be at least 10-15 pixels tall
+        let upscaledImage = upscaleImageForOCR(cgImage)
+
         let request = VNRecognizeTextRequest { request, error in
             if let error = error {
                 completion(.failure(error))
                 return
             }
-            
+
             guard let observations = request.results as? [VNRecognizedTextObservation] else {
                 completion(.failure(TableExtractionError.noOutput))
                 return
             }
-            
+
+            print("🔍 OCR found \(observations.count) text observations")
+            for (i, obs) in observations.enumerated() {
+                if let text = obs.topCandidates(1).first?.string {
+                    let bounds = obs.boundingBox
+                    print("  [\(i)] '\(text)' at x=\(String(format: "%.3f", bounds.minX)) y=\(String(format: "%.3f", bounds.minY))")
+                }
+            }
+
             // Assign text to cells
             let table = self.assignTextToCells(observations: observations, cells: cells)
             
@@ -507,10 +543,28 @@ class TableEditorViewModel: ObservableObject {
             
             completion(.success(output))
         }
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
-        
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        // .fast is documented to be better at individual characters vs .accurate (which is optimized for words)
+        // Source: Apple Developer community reports accurate struggles with single characters
+        request.recognitionLevel = .fast
+        request.usesLanguageCorrection = false
+        request.automaticallyDetectsLanguage = false
+
+        // Provide custom words to help recognize single characters and common table content
+        // This supplements the built-in dictionary and takes priority
+        request.customWords = [
+            // Single letters (both cases)
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+            "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+            "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
+        ]
+
+        // Allow recognition of single characters and short strings
+        if #available(macOS 13.0, *) {
+            request.minimumTextHeight = 0.0  // Detect even very small text
+        }
+
+        let handler = VNImageRequestHandler(cgImage: upscaledImage, options: [:])
         do {
             try handler.perform([request])
         } catch {
@@ -518,6 +572,60 @@ class TableEditorViewModel: ObservableObject {
         }
     }
     
+    private func upscaleImageForOCR(_ cgImage: CGImage) -> CGImage {
+        let minRecommendedHeight = 1200 // Minimum height for good OCR (increased from 800)
+        let currentHeight = cgImage.height
+
+        print("🔍 Upscaling check: Current height = \(currentHeight)px, threshold = \(minRecommendedHeight)px")
+
+        // If image is already large enough, return as-is
+        guard currentHeight < minRecommendedHeight else {
+            print("✅ Image already large enough, no upscaling needed")
+            return cgImage
+        }
+
+        // Calculate scale factor (at least 2x, or whatever brings us to minRecommendedHeight)
+        let scaleFactor = max(2.0, Double(minRecommendedHeight) / Double(currentHeight))
+        let newWidth = Int(Double(cgImage.width) * scaleFactor)
+        let newHeight = Int(Double(cgImage.height) * scaleFactor)
+
+        print("📈 Upscaling image from \(cgImage.width)x\(currentHeight) to \(newWidth)x\(newHeight) (scale: \(String(format: "%.2f", scaleFactor))x)")
+
+        // Create upscaled image with standardized format
+        // IMPORTANT: Use noneSkipLast (no alpha) for better OCR compatibility
+        // Vision OCR works better with images that have no alpha channel
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+
+        guard let context = CGContext(
+            data: nil,
+            width: newWidth,
+            height: newHeight,
+            bitsPerComponent: 8,
+            bytesPerRow: newWidth * 4,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo
+        ) else {
+            return cgImage
+        }
+
+        // Fill with white background (since we're removing alpha)
+        context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+
+        // Use high quality interpolation
+        context.interpolationQuality = .high
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+
+        if let upscaledImage = context.makeImage() {
+            print("✅ Successfully upscaled to \(upscaledImage.width)x\(upscaledImage.height)")
+            return upscaledImage
+        } else {
+            print("❌ Failed to create upscaled image, using original")
+            return cgImage
+        }
+    }
+
     private func createCellsFromGrid() -> [[CGRect]] {
         let sortedVertical = ([0.0] + verticalLines + [1.0]).sorted()
         let sortedHorizontal = Array(([0.0] + horizontalLines + [1.0]).sorted().reversed())
