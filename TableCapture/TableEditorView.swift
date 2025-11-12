@@ -529,9 +529,16 @@ class TableEditorViewModel: ObservableObject {
                 }
             }
 
+            // If Vision found no text, fallback to Tesseract
+            if observations.isEmpty {
+                print("⚠️ Vision OCR found 0 text observations - falling back to Tesseract")
+                self.extractWithTesseract(image: self.originalImage, cells: cells, format: format, completion: completion)
+                return
+            }
+
             // Assign text to cells
             let table = self.assignTextToCells(observations: observations, cells: cells)
-            
+
             // Format output
             let output: String
             switch format {
@@ -540,7 +547,7 @@ class TableEditorViewModel: ObservableObject {
             case .markdown:
                 output = self.formatAsMarkdown(table)
             }
-            
+
             completion(.success(output))
         }
         // .fast is documented to be better at individual characters vs .accurate (which is optimized for words)
@@ -571,7 +578,81 @@ class TableEditorViewModel: ObservableObject {
             completion(.failure(error))
         }
     }
-    
+
+    // MARK: - Tesseract Fallback
+
+    private func extractWithTesseract(image: NSImage, cells: [[CGRect]], format: TableFormat, completion: @escaping (Result<String, Error>) -> Void) {
+        print("🔧 Using Tesseract OCR for extraction...")
+
+        // Initialize Tesseract
+        let tesseract = SLTesseract()
+        tesseract.language = "eng"
+
+        // Optional: Configure for specific character sets if needed
+        // tesseract.charWhitelist = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
+
+        // Extract text from each cell
+        var table: [[String]] = []
+
+        for (rowIndex, row) in cells.enumerated() {
+            var rowTexts: [String] = []
+
+            for (colIndex, cellBounds) in row.enumerated() {
+                // Crop image to cell bounds
+                guard let cellImage = cropImageToCell(image: image, cellBounds: cellBounds) else {
+                    rowTexts.append("")
+                    continue
+                }
+
+                // Run Tesseract OCR on this cell
+                if let recognizedText = tesseract.recognize(cellImage), !recognizedText.isEmpty {
+                    let cleanedText = recognizedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    rowTexts.append(cleanedText)
+                    print("  Cell[\(rowIndex)][\(colIndex)]: '\(cleanedText)'")
+                } else {
+                    rowTexts.append("")
+                }
+            }
+
+            table.append(rowTexts)
+        }
+
+        // Format output
+        let output: String
+        switch format {
+        case .csv:
+            output = self.formatAsCSV(table)
+        case .markdown:
+            output = self.formatAsMarkdown(table)
+        }
+
+        print("✅ Tesseract extraction complete")
+        completion(.success(output))
+    }
+
+    private func cropImageToCell(image: NSImage, cellBounds: CGRect) -> NSImage? {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return nil
+        }
+
+        let imageWidth = CGFloat(cgImage.width)
+        let imageHeight = CGFloat(cgImage.height)
+
+        // Convert normalized coordinates to pixel coordinates
+        let x = cellBounds.origin.x * imageWidth
+        let y = cellBounds.origin.y * imageHeight
+        let width = cellBounds.size.width * imageWidth
+        let height = cellBounds.size.height * imageHeight
+
+        // Crop the image
+        let cropRect = CGRect(x: x, y: y, width: width, height: height)
+        guard let croppedCGImage = cgImage.cropping(to: cropRect) else {
+            return nil
+        }
+
+        return NSImage(cgImage: croppedCGImage, size: NSSize(width: cropRect.width, height: cropRect.height))
+    }
+
     private func upscaleImageForOCR(_ cgImage: CGImage) -> CGImage {
         let minRecommendedHeight = 1200 // Minimum height for good OCR (increased from 800)
         let currentHeight = cgImage.height
@@ -595,7 +676,7 @@ class TableEditorViewModel: ObservableObject {
         // IMPORTANT: Use noneSkipLast (no alpha) for better OCR compatibility
         // Vision OCR works better with images that have no alpha channel
         let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)
 
         guard let context = CGContext(
             data: nil,

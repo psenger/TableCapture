@@ -8,6 +8,17 @@
 
 /* Begin PBXBuildFile section */
 		F7157C922EC1AF610002FD78 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = F7157C912EC1AF560002FD78 /* README.md */; };
+		F79751AD2EC3278300FCD51C /* libtiff.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F79751A92EC3278300FCD51C /* libtiff.a */; };
+		F79751AE2EC3278300FCD51C /* libopenjpeg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F79751A62EC3278300FCD51C /* libopenjpeg.a */; };
+		F79751AF2EC3278300FCD51C /* libtesseract.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F79751A82EC3278300FCD51C /* libtesseract.a */; };
+		F79751B02EC3278300FCD51C /* libpng.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F79751A72EC3278300FCD51C /* libpng.a */; };
+		F79751B12EC3278300FCD51C /* libz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F79751AB2EC3278300FCD51C /* libz.a */; };
+		F79751B22EC3278300FCD51C /* libwebp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F79751AA2EC3278300FCD51C /* libwebp.a */; };
+		F79751B32EC3278300FCD51C /* libjpeg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F79751A42EC3278300FCD51C /* libjpeg.a */; };
+		F79751B42EC3278300FCD51C /* liblept.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F79751A52EC3278300FCD51C /* liblept.a */; };
+		F79751B52EC3278300FCD51C /* libgif.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F79751A32EC3278300FCD51C /* libgif.a */; };
+		F79752012EC3F30600FCD51C /* SLTesseract.mm in Sources */ = {isa = PBXBuildFile; fileRef = F79751A12EC3268400FCD51C /* SLTesseract.mm */; };
+		F79752042EC3F38000FCD51C /* libcurl.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = F79752032EC3F38000FCD51C /* libcurl.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,6 +43,88 @@
 		F7157C712EC1A7580002FD78 /* TableCaptureTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TableCaptureTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7157C7B2EC1A7580002FD78 /* TableCaptureUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TableCaptureUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7157C912EC1AF560002FD78 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		F79751A02EC3268400FCD51C /* SLTesseract.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SLTesseract.h; sourceTree = "<group>"; };
+		F79751A12EC3268400FCD51C /* SLTesseract.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SLTesseract.mm; sourceTree = "<group>"; };
+		F79751A32EC3278300FCD51C /* libgif.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgif.a; sourceTree = "<group>"; };
+		F79751A42EC3278300FCD51C /* libjpeg.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libjpeg.a; sourceTree = "<group>"; };
+		F79751A52EC3278300FCD51C /* liblept.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = liblept.a; sourceTree = "<group>"; };
+		F79751A62EC3278300FCD51C /* libopenjpeg.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libopenjpeg.a; sourceTree = "<group>"; };
+		F79751A72EC3278300FCD51C /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libpng.a; sourceTree = "<group>"; };
+		F79751A82EC3278300FCD51C /* libtesseract.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libtesseract.a; sourceTree = "<group>"; };
+		F79751A92EC3278300FCD51C /* libtiff.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libtiff.a; sourceTree = "<group>"; };
+		F79751AA2EC3278300FCD51C /* libwebp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libwebp.a; sourceTree = "<group>"; };
+		F79751AB2EC3278300FCD51C /* libz.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libz.a; sourceTree = "<group>"; };
+		F79751B62EC327A600FCD51C /* allheaders.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = allheaders.h; sourceTree = "<group>"; };
+		F79751B72EC327A600FCD51C /* alltypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = alltypes.h; sourceTree = "<group>"; };
+		F79751B82EC327A600FCD51C /* array.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = array.h; sourceTree = "<group>"; };
+		F79751B92EC327A600FCD51C /* arrayaccess.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = arrayaccess.h; sourceTree = "<group>"; };
+		F79751BA2EC327A600FCD51C /* bbuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bbuffer.h; sourceTree = "<group>"; };
+		F79751BB2EC327A600FCD51C /* bilateral.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bilateral.h; sourceTree = "<group>"; };
+		F79751BC2EC327A600FCD51C /* bmf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bmf.h; sourceTree = "<group>"; };
+		F79751BD2EC327A600FCD51C /* bmfdata.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bmfdata.h; sourceTree = "<group>"; };
+		F79751BE2EC327A600FCD51C /* bmp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bmp.h; sourceTree = "<group>"; };
+		F79751BF2EC327A600FCD51C /* ccbord.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ccbord.h; sourceTree = "<group>"; };
+		F79751C02EC327A600FCD51C /* dewarp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dewarp.h; sourceTree = "<group>"; };
+		F79751C12EC327A600FCD51C /* endianness.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = endianness.h; sourceTree = "<group>"; };
+		F79751C22EC327A600FCD51C /* environ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = environ.h; sourceTree = "<group>"; };
+		F79751C32EC327A600FCD51C /* gplot.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gplot.h; sourceTree = "<group>"; };
+		F79751C42EC327A600FCD51C /* heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = heap.h; sourceTree = "<group>"; };
+		F79751C52EC327A600FCD51C /* imageio.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = imageio.h; sourceTree = "<group>"; };
+		F79751C62EC327A600FCD51C /* jbclass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = jbclass.h; sourceTree = "<group>"; };
+		F79751C72EC327A600FCD51C /* leptwin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = leptwin.h; sourceTree = "<group>"; };
+		F79751C82EC327A600FCD51C /* list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = list.h; sourceTree = "<group>"; };
+		F79751C92EC327A600FCD51C /* morph.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = morph.h; sourceTree = "<group>"; };
+		F79751CA2EC327A600FCD51C /* pix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pix.h; sourceTree = "<group>"; };
+		F79751CB2EC327A600FCD51C /* ptra.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ptra.h; sourceTree = "<group>"; };
+		F79751CC2EC327A600FCD51C /* queue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = queue.h; sourceTree = "<group>"; };
+		F79751CD2EC327A600FCD51C /* readbarcode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = readbarcode.h; sourceTree = "<group>"; };
+		F79751CE2EC327A600FCD51C /* recog.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = recog.h; sourceTree = "<group>"; };
+		F79751CF2EC327A600FCD51C /* regutils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = regutils.h; sourceTree = "<group>"; };
+		F79751D02EC327A600FCD51C /* stack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stack.h; sourceTree = "<group>"; };
+		F79751D12EC327A600FCD51C /* stringcode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stringcode.h; sourceTree = "<group>"; };
+		F79751D22EC327A600FCD51C /* sudoku.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sudoku.h; sourceTree = "<group>"; };
+		F79751D32EC327A600FCD51C /* watershed.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = watershed.h; sourceTree = "<group>"; };
+		F79751D52EC327A600FCD51C /* apitypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = apitypes.h; sourceTree = "<group>"; };
+		F79751D62EC327A600FCD51C /* baseapi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = baseapi.h; sourceTree = "<group>"; };
+		F79751D72EC327A600FCD51C /* basedir.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = basedir.h; sourceTree = "<group>"; };
+		F79751D82EC327A600FCD51C /* capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = capi.h; sourceTree = "<group>"; };
+		F79751D92EC327A600FCD51C /* errcode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = errcode.h; sourceTree = "<group>"; };
+		F79751DA2EC327A600FCD51C /* fileerr.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fileerr.h; sourceTree = "<group>"; };
+		F79751DB2EC327A600FCD51C /* genericvector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = genericvector.h; sourceTree = "<group>"; };
+		F79751DC2EC327A600FCD51C /* helpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = helpers.h; sourceTree = "<group>"; };
+		F79751DD2EC327A600FCD51C /* host.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = host.h; sourceTree = "<group>"; };
+		F79751DE2EC327A600FCD51C /* ltrresultiterator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ltrresultiterator.h; sourceTree = "<group>"; };
+		F79751DF2EC327A600FCD51C /* memry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = memry.h; sourceTree = "<group>"; };
+		F79751E02EC327A600FCD51C /* ndminx.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ndminx.h; sourceTree = "<group>"; };
+		F79751E12EC327A600FCD51C /* ocrclass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ocrclass.h; sourceTree = "<group>"; };
+		F79751E22EC327A600FCD51C /* osdetect.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = osdetect.h; sourceTree = "<group>"; };
+		F79751E32EC327A600FCD51C /* pageiterator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pageiterator.h; sourceTree = "<group>"; };
+		F79751E42EC327A600FCD51C /* params.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = params.h; sourceTree = "<group>"; };
+		F79751E52EC327A600FCD51C /* platform.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = platform.h; sourceTree = "<group>"; };
+		F79751E62EC327A600FCD51C /* publictypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = publictypes.h; sourceTree = "<group>"; };
+		F79751E72EC327A600FCD51C /* renderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = renderer.h; sourceTree = "<group>"; };
+		F79751E82EC327A600FCD51C /* resultiterator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = resultiterator.h; sourceTree = "<group>"; };
+		F79751E92EC327A600FCD51C /* serialis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = serialis.h; sourceTree = "<group>"; };
+		F79751EA2EC327A600FCD51C /* strngs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = strngs.h; sourceTree = "<group>"; };
+		F79751EB2EC327A600FCD51C /* tesscallback.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tesscallback.h; sourceTree = "<group>"; };
+		F79751EC2EC327A600FCD51C /* thresholder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = thresholder.h; sourceTree = "<group>"; };
+		F79751ED2EC327A600FCD51C /* unichar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = unichar.h; sourceTree = "<group>"; };
+		F79751EE2EC327A600FCD51C /* unicharmap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = unicharmap.h; sourceTree = "<group>"; };
+		F79751EF2EC327A600FCD51C /* unicharset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = unicharset.h; sourceTree = "<group>"; };
+		F79751F12EC327A600FCD51C /* jconfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = jconfig.h; sourceTree = "<group>"; };
+		F79751F22EC327A600FCD51C /* jerror.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = jerror.h; sourceTree = "<group>"; };
+		F79751F32EC327A600FCD51C /* jmorecfg.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = jmorecfg.h; sourceTree = "<group>"; };
+		F79751F42EC327A600FCD51C /* jpeglib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = jpeglib.h; sourceTree = "<group>"; };
+		F79751F52EC327A600FCD51C /* png.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = png.h; sourceTree = "<group>"; };
+		F79751F62EC327A600FCD51C /* pngconf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pngconf.h; sourceTree = "<group>"; };
+		F79751F72EC327A600FCD51C /* pnglibconf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pnglibconf.h; sourceTree = "<group>"; };
+		F79751F82EC327A600FCD51C /* tiff.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tiff.h; sourceTree = "<group>"; };
+		F79751F92EC327A600FCD51C /* tiffconf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tiffconf.h; sourceTree = "<group>"; };
+		F79751FA2EC327A600FCD51C /* tiffio.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tiffio.h; sourceTree = "<group>"; };
+		F79751FB2EC327A600FCD51C /* tiffvers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tiffvers.h; sourceTree = "<group>"; };
+		F79751FD2EC327C800FCD51C /* eng.traineddata */ = {isa = PBXFileReference; lastKnownFileType = file; path = eng.traineddata; sourceTree = "<group>"; };
+		F79752032EC3F38000FCD51C /* libcurl.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcurl.tbd; path = usr/lib/libcurl.tbd; sourceTree = SDKROOT; };
+		F79752072EC3F5DF00FCD51C /* eng.traineddata */ = {isa = PBXFileReference; lastKnownFileType = file; name = eng.traineddata; path = Tesseract/tessdata/eng.traineddata; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -57,6 +150,16 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F79752042EC3F38000FCD51C /* libcurl.tbd in Frameworks */,
+				F79751AD2EC3278300FCD51C /* libtiff.a in Frameworks */,
+				F79751AE2EC3278300FCD51C /* libopenjpeg.a in Frameworks */,
+				F79751AF2EC3278300FCD51C /* libtesseract.a in Frameworks */,
+				F79751B02EC3278300FCD51C /* libpng.a in Frameworks */,
+				F79751B12EC3278300FCD51C /* libz.a in Frameworks */,
+				F79751B22EC3278300FCD51C /* libwebp.a in Frameworks */,
+				F79751B32EC3278300FCD51C /* libjpeg.a in Frameworks */,
+				F79751B42EC3278300FCD51C /* liblept.a in Frameworks */,
+				F79751B52EC3278300FCD51C /* libgif.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,10 +183,13 @@
 		F7157C5B2EC1A7560002FD78 = {
 			isa = PBXGroup;
 			children = (
+				F79752072EC3F5DF00FCD51C /* eng.traineddata */,
+				F797519F2EC3264400FCD51C /* Tesseract */,
 				F7157C912EC1AF560002FD78 /* README.md */,
 				F7157C662EC1A7560002FD78 /* TableCapture */,
 				F7157C742EC1A7580002FD78 /* TableCaptureTests */,
 				F7157C7E2EC1A7580002FD78 /* TableCaptureUITests */,
+				F79752022EC3F37F00FCD51C /* Frameworks */,
 				F7157C652EC1A7560002FD78 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -98,6 +204,141 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		F797519F2EC3264400FCD51C /* Tesseract */ = {
+			isa = PBXGroup;
+			children = (
+				F79751FE2EC327C800FCD51C /* tessdata */,
+				F79751A02EC3268400FCD51C /* SLTesseract.h */,
+				F79751A12EC3268400FCD51C /* SLTesseract.mm */,
+				F79751AC2EC3278300FCD51C /* lib */,
+				F79751FC2EC327A600FCD51C /* include */,
+			);
+			path = Tesseract;
+			sourceTree = "<group>";
+		};
+		F79751AC2EC3278300FCD51C /* lib */ = {
+			isa = PBXGroup;
+			children = (
+				F79751A32EC3278300FCD51C /* libgif.a */,
+				F79751A42EC3278300FCD51C /* libjpeg.a */,
+				F79751A52EC3278300FCD51C /* liblept.a */,
+				F79751A62EC3278300FCD51C /* libopenjpeg.a */,
+				F79751A72EC3278300FCD51C /* libpng.a */,
+				F79751A82EC3278300FCD51C /* libtesseract.a */,
+				F79751A92EC3278300FCD51C /* libtiff.a */,
+				F79751AA2EC3278300FCD51C /* libwebp.a */,
+				F79751AB2EC3278300FCD51C /* libz.a */,
+			);
+			path = lib;
+			sourceTree = "<group>";
+		};
+		F79751D42EC327A600FCD51C /* leptonica */ = {
+			isa = PBXGroup;
+			children = (
+				F79751B62EC327A600FCD51C /* allheaders.h */,
+				F79751B72EC327A600FCD51C /* alltypes.h */,
+				F79751B82EC327A600FCD51C /* array.h */,
+				F79751B92EC327A600FCD51C /* arrayaccess.h */,
+				F79751BA2EC327A600FCD51C /* bbuffer.h */,
+				F79751BB2EC327A600FCD51C /* bilateral.h */,
+				F79751BC2EC327A600FCD51C /* bmf.h */,
+				F79751BD2EC327A600FCD51C /* bmfdata.h */,
+				F79751BE2EC327A600FCD51C /* bmp.h */,
+				F79751BF2EC327A600FCD51C /* ccbord.h */,
+				F79751C02EC327A600FCD51C /* dewarp.h */,
+				F79751C12EC327A600FCD51C /* endianness.h */,
+				F79751C22EC327A600FCD51C /* environ.h */,
+				F79751C32EC327A600FCD51C /* gplot.h */,
+				F79751C42EC327A600FCD51C /* heap.h */,
+				F79751C52EC327A600FCD51C /* imageio.h */,
+				F79751C62EC327A600FCD51C /* jbclass.h */,
+				F79751C72EC327A600FCD51C /* leptwin.h */,
+				F79751C82EC327A600FCD51C /* list.h */,
+				F79751C92EC327A600FCD51C /* morph.h */,
+				F79751CA2EC327A600FCD51C /* pix.h */,
+				F79751CB2EC327A600FCD51C /* ptra.h */,
+				F79751CC2EC327A600FCD51C /* queue.h */,
+				F79751CD2EC327A600FCD51C /* readbarcode.h */,
+				F79751CE2EC327A600FCD51C /* recog.h */,
+				F79751CF2EC327A600FCD51C /* regutils.h */,
+				F79751D02EC327A600FCD51C /* stack.h */,
+				F79751D12EC327A600FCD51C /* stringcode.h */,
+				F79751D22EC327A600FCD51C /* sudoku.h */,
+				F79751D32EC327A600FCD51C /* watershed.h */,
+			);
+			path = leptonica;
+			sourceTree = "<group>";
+		};
+		F79751F02EC327A600FCD51C /* tesseract */ = {
+			isa = PBXGroup;
+			children = (
+				F79751D52EC327A600FCD51C /* apitypes.h */,
+				F79751D62EC327A600FCD51C /* baseapi.h */,
+				F79751D72EC327A600FCD51C /* basedir.h */,
+				F79751D82EC327A600FCD51C /* capi.h */,
+				F79751D92EC327A600FCD51C /* errcode.h */,
+				F79751DA2EC327A600FCD51C /* fileerr.h */,
+				F79751DB2EC327A600FCD51C /* genericvector.h */,
+				F79751DC2EC327A600FCD51C /* helpers.h */,
+				F79751DD2EC327A600FCD51C /* host.h */,
+				F79751DE2EC327A600FCD51C /* ltrresultiterator.h */,
+				F79751DF2EC327A600FCD51C /* memry.h */,
+				F79751E02EC327A600FCD51C /* ndminx.h */,
+				F79751E12EC327A600FCD51C /* ocrclass.h */,
+				F79751E22EC327A600FCD51C /* osdetect.h */,
+				F79751E32EC327A600FCD51C /* pageiterator.h */,
+				F79751E42EC327A600FCD51C /* params.h */,
+				F79751E52EC327A600FCD51C /* platform.h */,
+				F79751E62EC327A600FCD51C /* publictypes.h */,
+				F79751E72EC327A600FCD51C /* renderer.h */,
+				F79751E82EC327A600FCD51C /* resultiterator.h */,
+				F79751E92EC327A600FCD51C /* serialis.h */,
+				F79751EA2EC327A600FCD51C /* strngs.h */,
+				F79751EB2EC327A600FCD51C /* tesscallback.h */,
+				F79751EC2EC327A600FCD51C /* thresholder.h */,
+				F79751ED2EC327A600FCD51C /* unichar.h */,
+				F79751EE2EC327A600FCD51C /* unicharmap.h */,
+				F79751EF2EC327A600FCD51C /* unicharset.h */,
+			);
+			path = tesseract;
+			sourceTree = "<group>";
+		};
+		F79751FC2EC327A600FCD51C /* include */ = {
+			isa = PBXGroup;
+			children = (
+				F79751D42EC327A600FCD51C /* leptonica */,
+				F79751F02EC327A600FCD51C /* tesseract */,
+				F79751F12EC327A600FCD51C /* jconfig.h */,
+				F79751F22EC327A600FCD51C /* jerror.h */,
+				F79751F32EC327A600FCD51C /* jmorecfg.h */,
+				F79751F42EC327A600FCD51C /* jpeglib.h */,
+				F79751F52EC327A600FCD51C /* png.h */,
+				F79751F62EC327A600FCD51C /* pngconf.h */,
+				F79751F72EC327A600FCD51C /* pnglibconf.h */,
+				F79751F82EC327A600FCD51C /* tiff.h */,
+				F79751F92EC327A600FCD51C /* tiffconf.h */,
+				F79751FA2EC327A600FCD51C /* tiffio.h */,
+				F79751FB2EC327A600FCD51C /* tiffvers.h */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		F79751FE2EC327C800FCD51C /* tessdata */ = {
+			isa = PBXGroup;
+			children = (
+				F79751FD2EC327C800FCD51C /* eng.traineddata */,
+			);
+			path = tessdata;
+			sourceTree = "<group>";
+		};
+		F79752022EC3F37F00FCD51C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F79752032EC3F38000FCD51C /* libcurl.tbd */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -108,6 +349,7 @@
 				F7157C602EC1A7560002FD78 /* Sources */,
 				F7157C612EC1A7560002FD78 /* Frameworks */,
 				F7157C622EC1A7560002FD78 /* Resources */,
+				F79752092EC3F9B400FCD51C /* Copy Tessdata Folder */,
 			);
 			buildRules = (
 			);
@@ -238,11 +480,35 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		F79752092EC3F9B400FCD51C /* Copy Tessdata Folder */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tesseract/tessdata/eng.traineddata",
+			);
+			name = "Copy Tessdata Folder";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/tessdata/eng.traineddata",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Ensure tessdata is copied to correct location\n# This runs as part of the build process\n\nDEST_TESSDATA=\"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/tessdata\"\n\n# Create tessdata directory\nmkdir -p \"${DEST_TESSDATA}\"\n\n# Copy traineddata file from input to output\n# Input/output files are declared below, so sandboxing allows this\ncp -f \"${SCRIPT_INPUT_FILE_0}\" \"${SCRIPT_OUTPUT_FILE_0}\"\n\necho \"✓ Copied tessdata to: ${DEST_TESSDATA}\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		F7157C602EC1A7560002FD78 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F79752012EC3F30600FCD51C /* SLTesseract.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -402,6 +668,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Tesseract/include";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=macosx*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = NO;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = NO;
@@ -411,6 +678,10 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Tesseract/lib",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
 				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.philipasenger.TableCapture;
@@ -422,6 +693,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "TableCapture/TableCapture-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -438,6 +710,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Tesseract/include";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=macosx*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
@@ -447,6 +720,10 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Tesseract/lib",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
 				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.philipasenger.TableCapture;
@@ -458,6 +735,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "TableCapture/TableCapture-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
