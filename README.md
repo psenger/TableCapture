@@ -4,7 +4,7 @@ A lightweight macOS menu bar app that captures screenshots of tables and convert
 
 ![macOS](https://img.shields.io/badge/macOS-12.3+-blue.svg)
 ![Swift](https://img.shields.io/badge/Swift-5.5+-orange.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)
 
 
 ### Installing the App
@@ -19,9 +19,54 @@ Since this app is not signed with a paid Developer ID certificate, macOS will sh
 5. Grant Screen Recording permission in System Settings
 
 After the first launch, you can open it normally.
- 
+
+## Features
+
+- **Menu Bar App**: Lightweight application that runs from the macOS menu bar
+- **Interactive Screenshot**: Uses native macOS screenshot tool for precise table selection
+- **Dual OCR Support**:
+  - Primary: Apple Vision framework for fast, accurate text recognition
+  - Fallback: Tesseract OCR for challenging cases (e.g., single letters)
+- **Multiple Output Formats**: Export as CSV or Markdown
+- **Clipboard Integration**: Automatically copies result to clipboard for easy pasting
+
+## License & Third-Party Acknowledgments
+
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See [LICENSE.md](LICENSE.md) for details.
+
+**Third-Party Libraries**: This application uses several open-source libraries for OCR functionality, including Tesseract OCR, Leptonica, and various image processing libraries. See [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md) for complete license information and attributions.
+
+⚠️ **Note**: The project includes LibJPEG which has a license (IJG) that may not be fully compatible with GPL v3. See ACKNOWLEDGMENTS.md for details and recommended solutions before commercial distribution.
+
 ## Development
 
+
+### Running tests
+
+#### Run all tests:
+
+```bash
+xcodebuild test -project TableCapture.xcodeproj -scheme TableCapture -destination 'platform=macOS,arch=arm64'
+```
+
+#### Run only the ComplexLayoutMultiColMultiRowTests:
+
+```bash
+xcodebuild test -project TableCapture.xcodeproj -scheme TableCapture -destination 'platform=macOS,arch=arm64' -only-testing:TableCaptureTests/ComplexLayoutMultiColMultiRowTests
+```
+
+#### Run only the debug test to see the OCR output:
+
+```bash
+xcodebuild test -project TableCapture.xcodeproj -scheme TableCapture -destination 'platform=macOS,arch=arm64' -only-testing:TableCaptureTests/ComplexLayoutMultiColMultiRowTests/debugComplexLayout
+```
+
+#### Run a specific test (CSV or Markdown):
+
+```bash
+xcodebuild test -project TableCapture.xcodeproj -scheme TableCapture -destination 'platform=macOS,arch=arm64' -only-testing:TableCaptureTests/ComplexLayoutMultiColMultiRowTests/testComplexLayoutMarkdown
+```
+  
 ### Building a Release
 
 #### Creating a Release Candidate
@@ -30,17 +75,32 @@ After the first launch, you can open it normally.
    - Select **Product → Archive** from the menu
    - Wait for the archive to complete
    - In the Organizer window that appears, click **Distribute App**
+   - Choose **Custom** 
    - Choose **Copy App** and save it to a location (e.g., Desktop)
 
 2. **Locate the .app Bundle**
    - Find `TableCapture.app` in the exported location
 
-3. **Create a DMG Installer**
+3. **Create a Professional DMG Installer** (with drag-to-Applications)
+
    ```bash
-   hdiutil create -volname "TableCapture" -srcfolder TableCapture.app -ov -format UDZO TableCapture.dmg
+   # Create Applications symlink next to your app
+   ln -s /Applications Applications
+
+   # Create the DMG containing both the app and Applications link
+   # (saves to parent directory to avoid including the DMG in itself)
+   hdiutil create -volname "TableCapture" \
+     -srcfolder . \
+     -ov -format UDZO \
+     ../TableCapture.dmg
+
+   # Clean up the symlink
+   rm Applications
    ```
-   
-   This creates a compressed disk image that users can download and mount.
+
+   **Done!** Your `TableCapture.dmg` now has the professional drag-to-Applications interface.
+
+   When users open the DMG, they'll see your app and an Applications folder - they just drag the app to Applications to install.
 
 4. **Create a GitHub Release**
    - Go to your repository → **Releases**

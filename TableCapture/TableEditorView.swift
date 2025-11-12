@@ -12,15 +12,13 @@ import Combine
 
 struct TableEditorView: View {
     let image: NSImage
-    let format: TableFormat
-    let onComplete: (Result<String, Error>) -> Void
+    let onComplete: (Result<String, Error>, TableFormat) -> Void
     let onCancel: () -> Void
-    
+
     @StateObject private var viewModel: TableEditorViewModel
-    
-    init(image: NSImage, format: TableFormat, onComplete: @escaping (Result<String, Error>) -> Void, onCancel: @escaping () -> Void) {
+
+    init(image: NSImage, onComplete: @escaping (Result<String, Error>, TableFormat) -> Void, onCancel: @escaping () -> Void) {
         self.image = image
-        self.format = format
         self.onComplete = onComplete
         self.onCancel = onCancel
         _viewModel = StateObject(wrappedValue: TableEditorViewModel(image: image))
@@ -28,53 +26,69 @@ struct TableEditorView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Toolbar
-            HStack(spacing: 12) {
-                Text("Adjust Table Grid")
-                    .font(.headline)
-                
-                Spacer()
-                
-                // Grid controls
-                HStack(spacing: 8) {
-                    Button(action: { viewModel.addColumn() }) {
-                        Label("Add Column", systemImage: "rectangle.split.3x1")
+            // Toolbar - Two Rows
+            VStack(spacing: 8) {
+                // Row 1: Title and Grid Controls
+                HStack(spacing: 12) {
+                    Text("Adjust Table Grid")
+                        .font(.headline)
+
+                    Spacer()
+
+                    // Grid controls
+                    HStack(spacing: 8) {
+                        Button(action: { viewModel.addColumn() }) {
+                            Label("Add Column", systemImage: "rectangle.split.3x1")
+                        }
+                        .help("Add a vertical column divider")
+
+                        Button(action: { viewModel.addRow() }) {
+                            Label("Add Row", systemImage: "rectangle.split.1x2")
+                        }
+                        .help("Add a horizontal row divider")
+
+                        Divider()
+                            .frame(height: 20)
+
+                        Button(action: { viewModel.removeSelectedLine() }) {
+                            Label("Delete Line", systemImage: "trash")
+                        }
+                        .disabled(viewModel.selectedLine == nil)
+                        .help("Delete selected grid line (⌫)")
+
+                        Button(action: { viewModel.clearAllLines() }) {
+                            Label("Clear All", systemImage: "xmark.circle")
+                        }
+                        .help("Remove all grid lines")
                     }
-                    .help("Add a vertical column divider")
-                    
-                    Button(action: { viewModel.addRow() }) {
-                        Label("Add Row", systemImage: "rectangle.split.1x2")
-                    }
-                    .help("Add a horizontal row divider")
-                    
-                    Divider()
-                        .frame(height: 20)
-                    
-                    Button(action: { viewModel.removeSelectedLine() }) {
-                        Label("Delete Line", systemImage: "trash")
-                    }
-                    .disabled(viewModel.selectedLine == nil)
-                    .help("Delete selected grid line (⌫)")
-                    
-                    Button(action: { viewModel.clearAllLines() }) {
-                        Label("Clear All", systemImage: "xmark.circle")
-                    }
-                    .help("Remove all grid lines")
                 }
-                
-                Spacer()
-                
-                // Action buttons
+
+                // Row 2: Multi-line option and Action Buttons
                 HStack(spacing: 8) {
+                    Toggle("Preserve multi-line formatting", isOn: $viewModel.preserveMultilineFormatting)
+                        .help("When enabled:\n• Markdown: Lines joined with <br/>\n• CSV: Lines joined with \\n (cell quoted)")
+
+                    Spacer()
+
                     Button("Cancel") {
                         onCancel()
                     }
                     .keyboardShortcut(.cancelAction)
-                    
-                    Button("Extract Table") {
-                        viewModel.extractTable(format: format, completion: onComplete)
+
+                    Button("Extract as CSV") {
+                        viewModel.extractTable(format: .csv) { result in
+                            onComplete(result, .csv)
+                        }
                     }
-                    .keyboardShortcut(.defaultAction)
+                    .keyboardShortcut("c", modifiers: [.command])
+                    .disabled(viewModel.verticalLines.isEmpty && viewModel.horizontalLines.isEmpty)
+
+                    Button("Extract as Markdown") {
+                        viewModel.extractTable(format: .markdown) { result in
+                            onComplete(result, .markdown)
+                        }
+                    }
+                    .keyboardShortcut("m", modifiers: [.command])
                     .buttonStyle(.borderedProminent)
                     .disabled(viewModel.verticalLines.isEmpty && viewModel.horizontalLines.isEmpty)
                 }
@@ -153,6 +167,12 @@ struct GridOverlayView: View {
             let offsetY = (geometry.size.height - scaledHeight) / 2
             
             ZStack {
+                // Red border box around image
+                Rectangle()
+                    .stroke(Color.red.opacity(0.6), lineWidth: 3)
+                    .frame(width: scaledWidth, height: scaledHeight)
+                    .position(x: offsetX + scaledWidth / 2, y: offsetY + scaledHeight / 2)
+
                 // Vertical lines with drag handles
                 ForEach(Array(verticalLines.enumerated()), id: \.offset) { index, xPos in
                     GridLineView(
@@ -238,6 +258,10 @@ struct GridLineView: View {
                     .gesture(
                         DragGesture()
                             .onChanged { value in
+                                if !isDragging {
+                                    // Select on first drag
+                                    onSelect()
+                                }
                                 isDragging = true
                                 let newX = (value.location.x - offsetX) / scaledWidth
                                 onDrag(newX)
@@ -275,6 +299,10 @@ struct GridLineView: View {
                     .gesture(
                         DragGesture()
                             .onChanged { value in
+                                if !isDragging {
+                                    // Select on first drag
+                                    onSelect()
+                                }
                                 isDragging = true
                                 let newY = 1 - ((value.location.y - offsetY) / scaledHeight)
                                 onDrag(newY)
@@ -300,17 +328,20 @@ class TableEditorViewModel: ObservableObject {
     @Published var verticalLines: [CGFloat] = []
     @Published var horizontalLines: [CGFloat] = []
     @Published var selectedLine: GridLine?
-    
+    @Published var preserveMultilineFormatting: Bool = false
+
     var imageSize: CGSize {
         originalImage.size
     }
     
     private let extractor = AppleVisionExtractor()
     
-    init(image: NSImage) {
+    init(image: NSImage, autoDetectGrid: Bool = true) {
         self.originalImage = image
         self.displayImage = image
-        detectInitialGrid()
+        if autoDetectGrid {
+            detectInitialGrid()
+        }
     }
     
     func detectInitialGrid() {
@@ -475,27 +506,46 @@ class TableEditorViewModel: ObservableObject {
     func extractTable(format: TableFormat, completion: @escaping (Result<String, Error>) -> Void) {
         // Create cells based on grid lines
         let cells = createCellsFromGrid()
-        
+
         // Use Vision to extract text
         guard let cgImage = originalImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             completion(.failure(TableExtractionError.extractionFailed("Failed to load image")))
             return
         }
-        
+
+        // Upscale image if needed for better OCR accuracy
+        // Vision OCR needs text to be at least 10-15 pixels tall
+        let upscaledImage = upscaleImageForOCR(cgImage)
+
         let request = VNRecognizeTextRequest { request, error in
             if let error = error {
                 completion(.failure(error))
                 return
             }
-            
+
             guard let observations = request.results as? [VNRecognizedTextObservation] else {
                 completion(.failure(TableExtractionError.noOutput))
                 return
             }
-            
+
+            print("🔍 OCR found \(observations.count) text observations")
+            for (i, obs) in observations.enumerated() {
+                if let text = obs.topCandidates(1).first?.string {
+                    let bounds = obs.boundingBox
+                    print("  [\(i)] '\(text)' at x=\(String(format: "%.3f", bounds.minX)) y=\(String(format: "%.3f", bounds.minY))")
+                }
+            }
+
+            // If Vision found no text, fallback to Tesseract
+            if observations.isEmpty {
+                print("⚠️ Vision OCR found 0 text observations - falling back to Tesseract")
+                self.extractWithTesseract(image: self.originalImage, cells: cells, format: format, completion: completion)
+                return
+            }
+
             // Assign text to cells
             let table = self.assignTextToCells(observations: observations, cells: cells)
-            
+
             // Format output
             let output: String
             switch format {
@@ -504,20 +554,166 @@ class TableEditorViewModel: ObservableObject {
             case .markdown:
                 output = self.formatAsMarkdown(table)
             }
-            
+
             completion(.success(output))
         }
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
-        
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        // .fast is documented to be better at individual characters vs .accurate (which is optimized for words)
+        // Source: Apple Developer community reports accurate struggles with single characters
+        request.recognitionLevel = .fast
+        request.usesLanguageCorrection = false
+        request.automaticallyDetectsLanguage = false
+
+        // Provide custom words to help recognize single characters and common table content
+        // This supplements the built-in dictionary and takes priority
+        request.customWords = [
+            // Single letters (both cases)
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+            "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+            "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
+        ]
+
+        // Allow recognition of single characters and short strings
+        if #available(macOS 13.0, *) {
+            request.minimumTextHeight = 0.0  // Detect even very small text
+        }
+
+        let handler = VNImageRequestHandler(cgImage: upscaledImage, options: [:])
         do {
             try handler.perform([request])
         } catch {
             completion(.failure(error))
         }
     }
-    
+
+    // MARK: - Tesseract Fallback
+
+    private func extractWithTesseract(image: NSImage, cells: [[CGRect]], format: TableFormat, completion: @escaping (Result<String, Error>) -> Void) {
+        print("🔧 Using Tesseract OCR for extraction...")
+
+        // Initialize Tesseract
+        let tesseract = SLTesseract()
+        tesseract.language = "eng"
+
+        // Optional: Configure for specific character sets if needed
+        // tesseract.charWhitelist = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
+
+        // Extract text from each cell
+        var table: [[String]] = []
+
+        for (rowIndex, row) in cells.enumerated() {
+            var rowTexts: [String] = []
+
+            for (colIndex, cellBounds) in row.enumerated() {
+                // Crop image to cell bounds
+                guard let cellImage = cropImageToCell(image: image, cellBounds: cellBounds) else {
+                    rowTexts.append("")
+                    continue
+                }
+
+                // Run Tesseract OCR on this cell
+                if let recognizedText = tesseract.recognize(cellImage), !recognizedText.isEmpty {
+                    let cleanedText = recognizedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    rowTexts.append(cleanedText)
+                    print("  Cell[\(rowIndex)][\(colIndex)]: '\(cleanedText)'")
+                } else {
+                    rowTexts.append("")
+                }
+            }
+
+            table.append(rowTexts)
+        }
+
+        // Format output
+        let output: String
+        switch format {
+        case .csv:
+            output = self.formatAsCSV(table)
+        case .markdown:
+            output = self.formatAsMarkdown(table)
+        }
+
+        print("✅ Tesseract extraction complete")
+        completion(.success(output))
+    }
+
+    private func cropImageToCell(image: NSImage, cellBounds: CGRect) -> NSImage? {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return nil
+        }
+
+        let imageWidth = CGFloat(cgImage.width)
+        let imageHeight = CGFloat(cgImage.height)
+
+        // Convert normalized coordinates to pixel coordinates
+        let x = cellBounds.origin.x * imageWidth
+        let y = cellBounds.origin.y * imageHeight
+        let width = cellBounds.size.width * imageWidth
+        let height = cellBounds.size.height * imageHeight
+
+        // Crop the image
+        let cropRect = CGRect(x: x, y: y, width: width, height: height)
+        guard let croppedCGImage = cgImage.cropping(to: cropRect) else {
+            return nil
+        }
+
+        return NSImage(cgImage: croppedCGImage, size: NSSize(width: cropRect.width, height: cropRect.height))
+    }
+
+    private func upscaleImageForOCR(_ cgImage: CGImage) -> CGImage {
+        let minRecommendedHeight = 1200 // Minimum height for good OCR (increased from 800)
+        let currentHeight = cgImage.height
+
+        print("🔍 Upscaling check: Current height = \(currentHeight)px, threshold = \(minRecommendedHeight)px")
+
+        // If image is already large enough, return as-is
+        guard currentHeight < minRecommendedHeight else {
+            print("✅ Image already large enough, no upscaling needed")
+            return cgImage
+        }
+
+        // Calculate scale factor (at least 2x, or whatever brings us to minRecommendedHeight)
+        let scaleFactor = max(2.0, Double(minRecommendedHeight) / Double(currentHeight))
+        let newWidth = Int(Double(cgImage.width) * scaleFactor)
+        let newHeight = Int(Double(cgImage.height) * scaleFactor)
+
+        print("📈 Upscaling image from \(cgImage.width)x\(currentHeight) to \(newWidth)x\(newHeight) (scale: \(String(format: "%.2f", scaleFactor))x)")
+
+        // Create upscaled image with standardized format
+        // IMPORTANT: Use noneSkipLast (no alpha) for better OCR compatibility
+        // Vision OCR works better with images that have no alpha channel
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)
+
+        guard let context = CGContext(
+            data: nil,
+            width: newWidth,
+            height: newHeight,
+            bitsPerComponent: 8,
+            bytesPerRow: newWidth * 4,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo
+        ) else {
+            return cgImage
+        }
+
+        // Fill with white background (since we're removing alpha)
+        context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+
+        // Use high quality interpolation
+        context.interpolationQuality = .high
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+
+        if let upscaledImage = context.makeImage() {
+            print("✅ Successfully upscaled to \(upscaledImage.width)x\(upscaledImage.height)")
+            return upscaledImage
+        } else {
+            print("❌ Failed to create upscaled image, using original")
+            return cgImage
+        }
+    }
+
     private func createCellsFromGrid() -> [[CGRect]] {
         let sortedVertical = ([0.0] + verticalLines + [1.0]).sorted()
         let sortedHorizontal = Array(([0.0] + horizontalLines + [1.0]).sorted().reversed())
@@ -543,34 +739,37 @@ class TableEditorViewModel: ObservableObject {
     
     private func assignTextToCells(observations: [VNRecognizedTextObservation], cells: [[CGRect]]) -> [[String]] {
         var table: [[String]] = []
-        
+
         for row in cells {
             var rowData: [String] = []
-            
+
             for cell in row {
                 var textsInCell: [(String, CGFloat)] = []
-                
+
                 for observation in observations {
                     let textBounds = observation.boundingBox
                     let centerX = textBounds.midX
                     let centerY = textBounds.midY
-                    
+
                     if cell.contains(CGPoint(x: centerX, y: centerY)) {
                         if let text = observation.topCandidates(1).first?.string {
                             textsInCell.append((text, textBounds.origin.y))
                         }
                     }
                 }
-                
+
                 // Sort by Y position (top to bottom) and join
                 textsInCell.sort { $0.1 > $1.1 }
-                let cellText = textsInCell.map { $0.0 }.joined(separator: " ")
+
+                // Join with newline if preserving multi-line formatting, otherwise with space
+                let separator = preserveMultilineFormatting ? "\n" : " "
+                let cellText = textsInCell.map { $0.0 }.joined(separator: separator)
                 rowData.append(cellText)
             }
-            
+
             table.append(rowData)
         }
-        
+
         return table
     }
     
@@ -593,22 +792,29 @@ class TableEditorViewModel: ObservableObject {
         guard !table.isEmpty else { return "" }
         var lines: [String] = []
         let columnCount = table.map { $0.count }.max() ?? 0
-        
+
         for (index, row) in table.enumerated() {
             var paddedRow = row
             while paddedRow.count < columnCount {
                 paddedRow.append("")
             }
-            
-            let escapedRow = paddedRow.map { $0.replacingOccurrences(of: "|", with: "\\|") }
+
+            let escapedRow = paddedRow.map { cell -> String in
+                var escaped = cell.replacingOccurrences(of: "|", with: "\\|")
+                // If preserving multi-line, replace newlines with <br/>
+                if preserveMultilineFormatting {
+                    escaped = escaped.replacingOccurrences(of: "\n", with: "<br/>")
+                }
+                return escaped
+            }
             lines.append("| " + escapedRow.joined(separator: " | ") + " |")
-            
+
             if index == 0 {
                 let separator = "| " + Array(repeating: "---", count: columnCount).joined(separator: " | ") + " |"
                 lines.append(separator)
             }
         }
-        
+
         return lines.joined(separator: "\n")
     }
 }

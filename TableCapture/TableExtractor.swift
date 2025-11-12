@@ -71,7 +71,7 @@ class AppleVisionExtractor: TableExtractor {
         }
 
         // Get results
-        guard let textObservations = textRequest.results as? [VNRecognizedTextObservation], !textObservations.isEmpty else {
+        guard let textObservations = textRequest.results, !textObservations.isEmpty else {
             completion(.failure(TableExtractionError.noOutput))
             return
         }
