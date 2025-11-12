@@ -74,6 +74,13 @@
             ReferencedContainer = "container:TableCapture.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "DEBUG_IMAGE_PATH"
+            value = "/Users/psenger/Developer/TableCapture/TableCaptureTests/Resources/complext-layout-multi-line-multi-col-multi-row.png"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

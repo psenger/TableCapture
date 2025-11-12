@@ -26,44 +26,50 @@ struct TableEditorView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Toolbar
-            HStack(spacing: 12) {
-                Text("Adjust Table Grid")
-                    .font(.headline)
-                
-                Spacer()
-                
-                // Grid controls
-                HStack(spacing: 8) {
-                    Button(action: { viewModel.addColumn() }) {
-                        Label("Add Column", systemImage: "rectangle.split.3x1")
+            // Toolbar - Two Rows
+            VStack(spacing: 8) {
+                // Row 1: Title and Grid Controls
+                HStack(spacing: 12) {
+                    Text("Adjust Table Grid")
+                        .font(.headline)
+
+                    Spacer()
+
+                    // Grid controls
+                    HStack(spacing: 8) {
+                        Button(action: { viewModel.addColumn() }) {
+                            Label("Add Column", systemImage: "rectangle.split.3x1")
+                        }
+                        .help("Add a vertical column divider")
+
+                        Button(action: { viewModel.addRow() }) {
+                            Label("Add Row", systemImage: "rectangle.split.1x2")
+                        }
+                        .help("Add a horizontal row divider")
+
+                        Divider()
+                            .frame(height: 20)
+
+                        Button(action: { viewModel.removeSelectedLine() }) {
+                            Label("Delete Line", systemImage: "trash")
+                        }
+                        .disabled(viewModel.selectedLine == nil)
+                        .help("Delete selected grid line (⌫)")
+
+                        Button(action: { viewModel.clearAllLines() }) {
+                            Label("Clear All", systemImage: "xmark.circle")
+                        }
+                        .help("Remove all grid lines")
                     }
-                    .help("Add a vertical column divider")
-                    
-                    Button(action: { viewModel.addRow() }) {
-                        Label("Add Row", systemImage: "rectangle.split.1x2")
-                    }
-                    .help("Add a horizontal row divider")
-                    
-                    Divider()
-                        .frame(height: 20)
-                    
-                    Button(action: { viewModel.removeSelectedLine() }) {
-                        Label("Delete Line", systemImage: "trash")
-                    }
-                    .disabled(viewModel.selectedLine == nil)
-                    .help("Delete selected grid line (⌫)")
-                    
-                    Button(action: { viewModel.clearAllLines() }) {
-                        Label("Clear All", systemImage: "xmark.circle")
-                    }
-                    .help("Remove all grid lines")
                 }
-                
-                Spacer()
-                
-                // Action buttons
+
+                // Row 2: Multi-line option and Action Buttons
                 HStack(spacing: 8) {
+                    Toggle("Preserve multi-line formatting", isOn: $viewModel.preserveMultilineFormatting)
+                        .help("When enabled:\n• Markdown: Lines joined with <br/>\n• CSV: Lines joined with \\n (cell quoted)")
+
+                    Spacer()
+
                     Button("Cancel") {
                         onCancel()
                     }
@@ -322,7 +328,8 @@ class TableEditorViewModel: ObservableObject {
     @Published var verticalLines: [CGFloat] = []
     @Published var horizontalLines: [CGFloat] = []
     @Published var selectedLine: GridLine?
-    
+    @Published var preserveMultilineFormatting: Bool = false
+
     var imageSize: CGSize {
         originalImage.size
     }
@@ -732,34 +739,37 @@ class TableEditorViewModel: ObservableObject {
     
     private func assignTextToCells(observations: [VNRecognizedTextObservation], cells: [[CGRect]]) -> [[String]] {
         var table: [[String]] = []
-        
+
         for row in cells {
             var rowData: [String] = []
-            
+
             for cell in row {
                 var textsInCell: [(String, CGFloat)] = []
-                
+
                 for observation in observations {
                     let textBounds = observation.boundingBox
                     let centerX = textBounds.midX
                     let centerY = textBounds.midY
-                    
+
                     if cell.contains(CGPoint(x: centerX, y: centerY)) {
                         if let text = observation.topCandidates(1).first?.string {
                             textsInCell.append((text, textBounds.origin.y))
                         }
                     }
                 }
-                
+
                 // Sort by Y position (top to bottom) and join
                 textsInCell.sort { $0.1 > $1.1 }
-                let cellText = textsInCell.map { $0.0 }.joined(separator: " ")
+
+                // Join with newline if preserving multi-line formatting, otherwise with space
+                let separator = preserveMultilineFormatting ? "\n" : " "
+                let cellText = textsInCell.map { $0.0 }.joined(separator: separator)
                 rowData.append(cellText)
             }
-            
+
             table.append(rowData)
         }
-        
+
         return table
     }
     
@@ -782,22 +792,29 @@ class TableEditorViewModel: ObservableObject {
         guard !table.isEmpty else { return "" }
         var lines: [String] = []
         let columnCount = table.map { $0.count }.max() ?? 0
-        
+
         for (index, row) in table.enumerated() {
             var paddedRow = row
             while paddedRow.count < columnCount {
                 paddedRow.append("")
             }
-            
-            let escapedRow = paddedRow.map { $0.replacingOccurrences(of: "|", with: "\\|") }
+
+            let escapedRow = paddedRow.map { cell -> String in
+                var escaped = cell.replacingOccurrences(of: "|", with: "\\|")
+                // If preserving multi-line, replace newlines with <br/>
+                if preserveMultilineFormatting {
+                    escaped = escaped.replacingOccurrences(of: "\n", with: "<br/>")
+                }
+                return escaped
+            }
             lines.append("| " + escapedRow.joined(separator: " | ") + " |")
-            
+
             if index == 0 {
                 let separator = "| " + Array(repeating: "---", count: columnCount).joined(separator: " | ") + " |"
                 lines.append(separator)
             }
         }
-        
+
         return lines.joined(separator: "\n")
     }
 }
