@@ -20,7 +20,7 @@ struct TwoColumnSingleLetterTests {
         imageName: "two-column-multiline-letters",
         verticalLines: [0.5],        // One vertical line at 50% (middle)
         horizontalLines: [],         // No horizontal lines - single row
-        expectedCSV: "A C E,B D",    // Single letters merged with spaces
+        expectedCSV: "\"A C E\",\"B D\"",    // Single letters merged with spaces
         expectedMarkdown: """
         | A C E | B D |
         | --- | --- |
@@ -29,7 +29,7 @@ struct TwoColumnSingleLetterTests {
 
     @Test("Two-column single letters - CSV extraction")
     func testTwoColumnLettersCSV() async throws {
-        let result = try await runOCRTest(testCase: Self.twoColumnLetters, format: .csv)
+        let result = try await runOCRTest(testCase: Self.twoColumnLetters, format: .csv, testName: "TwoColumnLetters")
 
         let normalizedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedExpected = Self.twoColumnLetters.expectedCSV.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -43,7 +43,7 @@ struct TwoColumnSingleLetterTests {
 
     @Test("Two-column single letters - Markdown extraction")
     func testTwoColumnLettersMarkdown() async throws {
-        let result = try await runOCRTest(testCase: Self.twoColumnLetters, format: .markdown)
+        let result = try await runOCRTest(testCase: Self.twoColumnLetters, format: .markdown, testName: "TwoColumnLetters")
 
         let normalizedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedExpected = Self.twoColumnLetters.expectedMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -56,7 +56,7 @@ struct TwoColumnSingleLetterTests {
     @MainActor
     func debugTwoColumnLetters() async throws {
         let image = try loadTestImage(named: Self.twoColumnLetters.imageName)
-        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false, testName: "TwoColumnLetters")
 
         viewModel.verticalLines = Self.twoColumnLetters.verticalLines
         viewModel.horizontalLines = Self.twoColumnLetters.horizontalLines

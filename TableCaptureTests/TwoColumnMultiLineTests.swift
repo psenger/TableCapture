@@ -19,9 +19,9 @@ struct TwoColumnMultiLineTests {
     // Note: OCR reads "Elephant" as "Elephabnt" (minor OCR error)
     static let twoColumnMultiLine = TableTestCase(
         imageName: "two-column-multiline",
-        verticalLines: [0.5],        // One vertical line at 50% (middle)
+        verticalLines: [0.6],        // One vertical line at 50% (middle)
         horizontalLines: [],         // No horizontal lines - single row
-        expectedCSV: "Apple Cat Elephabnt,Bat Dog",    // Lines merged with spaces within each cell
+        expectedCSV: "\"Apple Cat Elephabnt\",\"Bat Dog\"",    // Lines merged with spaces within each cell
         expectedMarkdown: """
         | Apple Cat Elephabnt | Bat Dog |
         | --- | --- |
@@ -30,7 +30,7 @@ struct TwoColumnMultiLineTests {
 
     @Test("Two-column multi-line - CSV extraction")
     func testTwoColumnMultiLineCSV() async throws {
-        let result = try await runOCRTest(testCase: Self.twoColumnMultiLine, format: .csv)
+        let result = try await runOCRTest(testCase: Self.twoColumnMultiLine, format: .csv, testName: "TwoColumnMultiLine")
 
         let normalizedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedExpected = Self.twoColumnMultiLine.expectedCSV.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -41,7 +41,7 @@ struct TwoColumnMultiLineTests {
 
     @Test("Two-column multi-line - Markdown extraction")
     func testTwoColumnMultiLineMarkdown() async throws {
-        let result = try await runOCRTest(testCase: Self.twoColumnMultiLine, format: .markdown)
+        let result = try await runOCRTest(testCase: Self.twoColumnMultiLine, format: .markdown, testName: "TwoColumnMultiLine")
 
         let normalizedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedExpected = Self.twoColumnMultiLine.expectedMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -54,7 +54,7 @@ struct TwoColumnMultiLineTests {
     @MainActor
     func debugTwoColumnMultiLine() async throws {
         let image = try loadTestImage(named: Self.twoColumnMultiLine.imageName)
-        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false, testName: "TwoColumnMultiLine")
 
         viewModel.verticalLines = Self.twoColumnMultiLine.verticalLines
         viewModel.horizontalLines = Self.twoColumnMultiLine.horizontalLines

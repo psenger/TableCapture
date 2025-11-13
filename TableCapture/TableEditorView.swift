@@ -333,12 +333,99 @@ class TableEditorViewModel: ObservableObject {
     var imageSize: CGSize {
         originalImage.size
     }
-    
+
     private let extractor = AppleVisionExtractor()
-    
-    init(image: NSImage, autoDetectGrid: Bool = true) {
+
+    // OCR engine for text recognition (pluggable)
+    private var ocrEngine: CellOCREngine
+
+    // Debug output directory (set from environment variable)
+    private let debugOutputDir: String?
+    private let debugTestName: String?
+    private var debugTestSubdirectory: String?
+
+    // Shared timestamp directory for the entire test run (class variable)
+    private static var sharedTimestampDir: String?
+
+    init(image: NSImage, autoDetectGrid: Bool = true, testName: String? = nil, ocrEngine: CellOCREngine? = nil) {
         self.originalImage = image
+        // Default to Tesseract if no engine specified
+        self.ocrEngine = ocrEngine ?? TesseractOCREngine(preserveMultilineFormatting: false)
         self.displayImage = image
+        self.debugTestName = testName
+
+        // Read debug output directory from environment
+        self.debugOutputDir = ProcessInfo.processInfo.environment["DEBUG_OUTPUT_DIR"]
+
+        // Create test-specific subdirectory if debug output is enabled AND we have a test name
+        // This prevents debug output during normal app usage (when testName is nil)
+        if let baseDir = debugOutputDir, testName != nil {
+            // Create or reuse the shared timestamp directory
+            if TableEditorViewModel.sharedTimestampDir == nil {
+                // Try to reuse a recent directory (within last 60 seconds) to avoid multiple timestamps in same test run
+                var timestampDirPath: String?
+                let fileManager = FileManager.default
+
+                if let existingDirs = try? fileManager.contentsOfDirectory(atPath: baseDir) {
+                    let recentDirs = existingDirs.filter { dirName in
+                        let fullPath = (baseDir as NSString).appendingPathComponent(dirName)
+                        var isDirectory: ObjCBool = false
+                        guard fileManager.fileExists(atPath: fullPath, isDirectory: &isDirectory),
+                              isDirectory.boolValue else { return false }
+
+                        // Check if directory was created in last 60 seconds
+                        if let attrs = try? fileManager.attributesOfItem(atPath: fullPath),
+                           let creationDate = attrs[.creationDate] as? Date {
+                            return Date().timeIntervalSince(creationDate) < 60
+                        }
+                        return false
+                    }.sorted(by: >)  // Most recent first
+
+                    if let recentDir = recentDirs.first {
+                        timestampDirPath = (baseDir as NSString).appendingPathComponent(recentDir)
+                    }
+                }
+
+                // Create new timestamp directory if none found
+                if timestampDirPath == nil {
+                    let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+                    timestampDirPath = (baseDir as NSString).appendingPathComponent(timestamp)
+                    do {
+                        try fileManager.createDirectory(atPath: timestampDirPath!, withIntermediateDirectories: true)
+                    } catch {
+                        timestampDirPath = nil
+                    }
+                }
+
+                TableEditorViewModel.sharedTimestampDir = timestampDirPath
+            }
+
+            // Create test-specific subdirectory within the timestamp directory
+            if let timestampDir = TableEditorViewModel.sharedTimestampDir {
+                // Safe to force unwrap testName here because we already checked testName != nil above
+                let subdirPath = (timestampDir as NSString).appendingPathComponent(testName!)
+
+                do {
+                    try FileManager.default.createDirectory(atPath: subdirPath, withIntermediateDirectories: true)
+                    self.debugTestSubdirectory = subdirPath
+
+                    // Save the original test image
+                    if let tiffData = image.tiffRepresentation,
+                       let bitmapRep = NSBitmapImageRep(data: tiffData),
+                       let pngData = bitmapRep.representation(using: .png, properties: [:]) {
+                        let imageURL = URL(fileURLWithPath: subdirPath).appendingPathComponent("test_image.png")
+                        try pngData.write(to: imageURL)
+                    }
+                } catch {
+                    self.debugTestSubdirectory = nil
+                }
+            } else {
+                self.debugTestSubdirectory = nil
+            }
+        } else {
+            self.debugTestSubdirectory = nil
+        }
+
         if autoDetectGrid {
             detectInitialGrid()
         }
@@ -392,8 +479,6 @@ class TableEditorViewModel: ObservableObject {
         
         // Remove boundaries too close to edges
         horizontalLines = clusteredY.filter { $0 > 0.05 && $0 < 0.95 }
-        
-        print("DEBUG: Detected \(verticalLines.count) vertical lines and \(horizontalLines.count) horizontal lines")
     }
     
     private func clusterPositions(_ positions: [CGFloat], threshold: CGFloat) -> [CGFloat] {
@@ -507,96 +592,15 @@ class TableEditorViewModel: ObservableObject {
         // Create cells based on grid lines
         let cells = createCellsFromGrid()
 
-        // Use Vision to extract text
-        guard let cgImage = originalImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            completion(.failure(TableExtractionError.extractionFailed("Failed to load image")))
-            return
-        }
-
-        // Upscale image if needed for better OCR accuracy
-        // Vision OCR needs text to be at least 10-15 pixels tall
-        let upscaledImage = upscaleImageForOCR(cgImage)
-
-        let request = VNRecognizeTextRequest { request, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-
-            guard let observations = request.results as? [VNRecognizedTextObservation] else {
-                completion(.failure(TableExtractionError.noOutput))
-                return
-            }
-
-            print("🔍 OCR found \(observations.count) text observations")
-            for (i, obs) in observations.enumerated() {
-                if let text = obs.topCandidates(1).first?.string {
-                    let bounds = obs.boundingBox
-                    print("  [\(i)] '\(text)' at x=\(String(format: "%.3f", bounds.minX)) y=\(String(format: "%.3f", bounds.minY))")
-                }
-            }
-
-            // If Vision found no text, fallback to Tesseract
-            if observations.isEmpty {
-                print("⚠️ Vision OCR found 0 text observations - falling back to Tesseract")
-                self.extractWithTesseract(image: self.originalImage, cells: cells, format: format, completion: completion)
-                return
-            }
-
-            // Assign text to cells
-            let table = self.assignTextToCells(observations: observations, cells: cells)
-
-            // Format output
-            let output: String
-            switch format {
-            case .csv:
-                output = self.formatAsCSV(table)
-            case .markdown:
-                output = self.formatAsMarkdown(table)
-            }
-
-            completion(.success(output))
-        }
-        // .fast is documented to be better at individual characters vs .accurate (which is optimized for words)
-        // Source: Apple Developer community reports accurate struggles with single characters
-        request.recognitionLevel = .fast
-        request.usesLanguageCorrection = false
-        request.automaticallyDetectsLanguage = false
-
-        // Provide custom words to help recognize single characters and common table content
-        // This supplements the built-in dictionary and takes priority
-        request.customWords = [
-            // Single letters (both cases)
-            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-            "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
-            "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
-        ]
-
-        // Allow recognition of single characters and short strings
-        if #available(macOS 13.0, *) {
-            request.minimumTextHeight = 0.0  // Detect even very small text
-        }
-
-        let handler = VNImageRequestHandler(cgImage: upscaledImage, options: [:])
-        do {
-            try handler.perform([request])
-        } catch {
-            completion(.failure(error))
-        }
+        // Use the configured OCR engine
+        extractWithOCR(image: originalImage, cells: cells, format: format, completion: completion)
     }
 
-    // MARK: - Tesseract Fallback
+    // MARK: - Generic OCR Extraction
 
-    private func extractWithTesseract(image: NSImage, cells: [[CGRect]], format: TableFormat, completion: @escaping (Result<String, Error>) -> Void) {
-        print("🔧 Using Tesseract OCR for extraction...")
-
-        // Initialize Tesseract
-        let tesseract = SLTesseract()
-        tesseract.language = "eng"
-
-        // Optional: Configure for specific character sets if needed
-        // tesseract.charWhitelist = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
+    private func extractWithOCR(image: NSImage, cells: [[CGRect]], format: TableFormat, completion: @escaping (Result<String, Error>) -> Void) {
+        // Update the OCR engine's formatting preference
+        ocrEngine.preserveMultilineFormatting = preserveMultilineFormatting
 
         // Extract text from each cell
         var table: [[String]] = []
@@ -611,13 +615,24 @@ class TableEditorViewModel: ObservableObject {
                     continue
                 }
 
-                // Run Tesseract OCR on this cell
-                if let recognizedText = tesseract.recognize(cellImage), !recognizedText.isEmpty {
-                    let cleanedText = recognizedText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    rowTexts.append(cleanedText)
-                    print("  Cell[\(rowIndex)][\(colIndex)]: '\(cleanedText)'")
-                } else {
-                    rowTexts.append("")
+                // Pre-process the cell image for better OCR accuracy
+                let processedImage = preprocessCellForOCR(cellImage)
+
+                // Run OCR on this cell using the configured engine
+                let cellText = ocrEngine.recognizeText(in: processedImage) ?? ""
+                rowTexts.append(cellText)
+
+                // Debug output: save cell image and text
+                if let debugDir = debugTestSubdirectory {
+                    saveCellDebugInfo(
+                        originalCellImage: cellImage,
+                        preprocessedCellImage: processedImage,
+                        cellBounds: cellBounds,
+                        rowIndex: rowIndex,
+                        colIndex: colIndex,
+                        extractedText: cellText,
+                        outputDir: debugDir
+                    )
                 }
             }
 
@@ -633,7 +648,6 @@ class TableEditorViewModel: ObservableObject {
             output = self.formatAsMarkdown(table)
         }
 
-        print("✅ Tesseract extraction complete")
         completion(.success(output))
     }
 
@@ -660,15 +674,145 @@ class TableEditorViewModel: ObservableObject {
         return NSImage(cgImage: croppedCGImage, size: NSSize(width: cropRect.width, height: cropRect.height))
     }
 
+    // MARK: - OCR Preprocessing
+
+    private func preprocessCellForOCR(_ cellImage: NSImage) -> NSImage {
+        // Guard extracts the CGImage from NSImage, which is needed for low-level image processing
+        // operations like upscaling, grayscale conversion, contrast enhancement, etc.
+        // If extraction fails (rare), we safely return the original image unchanged.
+        guard let cgImage = cellImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return cellImage
+        }
+
+        // Just return the original cell image without any preprocessing
+        return cellImage
+
+        // Step 1: Upscale if the cell is too small (DISABLED)
+        // let minCellHeight = 40  // Tesseract works best with text height >= 30-40px
+        // var processedImage = cgImage
+        //
+        // if cgImage.height < minCellHeight {
+        //     let scaleFactor = max(2.0, Double(minCellHeight) / Double(cgImage.height))
+        //     processedImage = upscaleCellImage(cgImage, scaleFactor: scaleFactor)
+        //
+        //     #if DEBUG
+        //     print("    📏 Upscaled cell from \(cgImage.height)px to \(processedImage.height)px (scale: \(String(format: "%.1f", scaleFactor))x)")
+        //     #endif
+        // }
+        //
+        // return NSImage(cgImage: processedImage, size: NSSize(width: processedImage.width, height: processedImage.height))
+
+        // Step 2: Convert to grayscale
+        // let grayscaleImage = convertToGrayscale(processedImage)
+
+        // Step 3: Enhance contrast
+        // let contrastedImage = enhanceContrast(grayscaleImage)
+
+        // Step 4: Binarize (convert to pure black and white)
+        // let binarizedImage = binarizeImage(contrastedImage)
+
+        // return NSImage(cgImage: binarizedImage, size: NSSize(width: binarizedImage.width, height: binarizedImage.height))
+    }
+
+    private func upscaleCellImage(_ cgImage: CGImage, scaleFactor: Double) -> CGImage {
+        let newWidth = Int(Double(cgImage.width) * scaleFactor)
+        let newHeight = Int(Double(cgImage.height) * scaleFactor)
+
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        // Use premultiplied alpha to preserve image transparency and anti-aliasing
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)
+
+        guard let context = CGContext(
+            data: nil,
+            width: newWidth,
+            height: newHeight,
+            bitsPerComponent: 8,
+            bytesPerRow: newWidth * 4,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo.rawValue
+        ) else {
+            return cgImage
+        }
+
+        // DO NOT fill with white - preserve original image appearance
+        // High quality interpolation for smooth upscaling
+        context.interpolationQuality = .high
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+
+        return context.makeImage() ?? cgImage
+    }
+
+    private func convertToGrayscale(_ cgImage: CGImage) -> CGImage {
+        let colorSpace = CGColorSpaceCreateDeviceGray()
+        let width = cgImage.width
+        let height = cgImage.height
+
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ) else {
+            return cgImage
+        }
+
+        // Draw original image in grayscale
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        return context.makeImage() ?? cgImage
+    }
+
+    private func enhanceContrast(_ cgImage: CGImage) -> CGImage {
+        let ciImage = CIImage(cgImage: cgImage)
+        let filter = CIFilter(name: "CIColorControls")
+        filter?.setValue(ciImage, forKey: kCIInputImageKey)
+        filter?.setValue(1.3, forKey: kCIInputContrastKey)  // Increase contrast by 30%
+        filter?.setValue(0.05, forKey: kCIInputBrightnessKey)  // Slight brightness boost
+
+        guard let outputImage = filter?.outputImage,
+              let cgContext = CIContext(options: nil).createCGImage(outputImage, from: outputImage.extent) else {
+            return cgImage
+        }
+
+        return cgContext
+    }
+
+    private func binarizeImage(_ cgImage: CGImage) -> CGImage {
+        // Use Otsu's thresholding approximation via CIFilter
+        let ciImage = CIImage(cgImage: cgImage)
+
+        // Apply exposure adjustment to create strong black/white separation
+        let exposureFilter = CIFilter(name: "CIExposureAdjust")
+        exposureFilter?.setValue(ciImage, forKey: kCIInputImageKey)
+        exposureFilter?.setValue(0.5, forKey: kCIInputEVKey)
+
+        guard let exposedImage = exposureFilter?.outputImage else {
+            return cgImage
+        }
+
+        // Apply color threshold to binarize
+        let thresholdFilter = CIFilter(name: "CIColorControls")
+        thresholdFilter?.setValue(exposedImage, forKey: kCIInputImageKey)
+        thresholdFilter?.setValue(2.0, forKey: kCIInputContrastKey)  // Very high contrast
+        thresholdFilter?.setValue(0, forKey: kCIInputSaturationKey)  // Remove any color
+
+        guard let outputImage = thresholdFilter?.outputImage,
+              let binarized = CIContext(options: nil).createCGImage(outputImage, from: outputImage.extent) else {
+            return cgImage
+        }
+
+        return binarized
+    }
+
     private func upscaleImageForOCR(_ cgImage: CGImage) -> CGImage {
         let minRecommendedHeight = 1200 // Minimum height for good OCR (increased from 800)
         let currentHeight = cgImage.height
 
-        print("🔍 Upscaling check: Current height = \(currentHeight)px, threshold = \(minRecommendedHeight)px")
-
         // If image is already large enough, return as-is
         guard currentHeight < minRecommendedHeight else {
-            print("✅ Image already large enough, no upscaling needed")
             return cgImage
         }
 
@@ -676,8 +820,6 @@ class TableEditorViewModel: ObservableObject {
         let scaleFactor = max(2.0, Double(minRecommendedHeight) / Double(currentHeight))
         let newWidth = Int(Double(cgImage.width) * scaleFactor)
         let newHeight = Int(Double(cgImage.height) * scaleFactor)
-
-        print("📈 Upscaling image from \(cgImage.width)x\(currentHeight) to \(newWidth)x\(newHeight) (scale: \(String(format: "%.2f", scaleFactor))x)")
 
         // Create upscaled image with standardized format
         // IMPORTANT: Use noneSkipLast (no alpha) for better OCR compatibility
@@ -706,10 +848,8 @@ class TableEditorViewModel: ObservableObject {
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
 
         if let upscaledImage = context.makeImage() {
-            print("✅ Successfully upscaled to \(upscaledImage.width)x\(upscaledImage.height)")
             return upscaledImage
         } else {
-            print("❌ Failed to create upscaled image, using original")
             return cgImage
         }
     }
@@ -717,74 +857,103 @@ class TableEditorViewModel: ObservableObject {
     private func createCellsFromGrid() -> [[CGRect]] {
         let sortedVertical = ([0.0] + verticalLines + [1.0]).sorted()
         let sortedHorizontal = Array(([0.0] + horizontalLines + [1.0]).sorted().reversed())
-        
+
         var cells: [[CGRect]] = []
-        
+
         for rowIndex in 0..<(sortedHorizontal.count - 1) {
             var row: [CGRect] = []
             let top = sortedHorizontal[rowIndex]
             let bottom = sortedHorizontal[rowIndex + 1]
-            
+
             for colIndex in 0..<(sortedVertical.count - 1) {
                 let left = sortedVertical[colIndex]
                 let right = sortedVertical[colIndex + 1]
-                
+
                 row.append(CGRect(x: left, y: bottom, width: right - left, height: top - bottom))
             }
             cells.append(row)
         }
-        
-        return cells
+
+        // Reverse to get top-to-bottom order (we built bottom-to-top due to CGImage coordinates)
+        return cells.reversed()
     }
     
-    private func assignTextToCells(observations: [VNRecognizedTextObservation], cells: [[CGRect]]) -> [[String]] {
-        var table: [[String]] = []
+    private func saveCellDebugInfo(
+        originalCellImage: NSImage,
+        preprocessedCellImage: NSImage,
+        cellBounds: CGRect,
+        rowIndex: Int,
+        colIndex: Int,
+        extractedText: String,
+        outputDir: String
+    ) {
+        let cellDirName = String(format: "%02d_row_%02d_col", rowIndex, colIndex)
+        let cellDirURL = URL(fileURLWithPath: outputDir).appendingPathComponent(cellDirName)
 
-        for row in cells {
-            var rowData: [String] = []
+        // Create directory for this cell
+        do {
+            try FileManager.default.createDirectory(at: cellDirURL, withIntermediateDirectories: true)
 
-            for cell in row {
-                var textsInCell: [(String, CGFloat)] = []
-
-                for observation in observations {
-                    let textBounds = observation.boundingBox
-                    let centerX = textBounds.midX
-                    let centerY = textBounds.midY
-
-                    if cell.contains(CGPoint(x: centerX, y: centerY)) {
-                        if let text = observation.topCandidates(1).first?.string {
-                            textsInCell.append((text, textBounds.origin.y))
-                        }
-                    }
-                }
-
-                // Sort by Y position (top to bottom) and join
-                textsInCell.sort { $0.1 > $1.1 }
-
-                // Join with newline if preserving multi-line formatting, otherwise with space
-                let separator = preserveMultilineFormatting ? "\n" : " "
-                let cellText = textsInCell.map { $0.0 }.joined(separator: separator)
-                rowData.append(cellText)
+            // Save the original cropped cell image
+            if let tiffData = originalCellImage.tiffRepresentation,
+               let bitmapRep = NSBitmapImageRep(data: tiffData),
+               let pngData = bitmapRep.representation(using: .png, properties: [:]) {
+                let imageURL = cellDirURL.appendingPathComponent("cell_original.png")
+                try pngData.write(to: imageURL)
             }
 
-            table.append(rowData)
-        }
+            // Save the preprocessed cell image
+            if let tiffData = preprocessedCellImage.tiffRepresentation,
+               let bitmapRep = NSBitmapImageRep(data: tiffData),
+               let pngData = bitmapRep.representation(using: .png, properties: [:]) {
+                let imageURL = cellDirURL.appendingPathComponent("cell_preprocessed.png")
+                try pngData.write(to: imageURL)
+            }
 
-        return table
+            // Save the extracted text
+            let textURL = cellDirURL.appendingPathComponent("text.txt")
+            try extractedText.write(to: textURL, atomically: true, encoding: .utf8)
+
+            // Save the crop dimensions
+            let dimensionsURL = cellDirURL.appendingPathComponent("dimensions.txt")
+            let dimensionsInfo = """
+                Cell Position: Row \(rowIndex), Column \(colIndex)
+
+                Normalized Bounds (0.0-1.0):
+                  Origin: (x: \(cellBounds.origin.x), y: \(cellBounds.origin.y))
+                  Size: (width: \(cellBounds.size.width), height: \(cellBounds.size.height))
+
+                Original Image Size:
+                  Width: \(originalCellImage.size.width)px
+                  Height: \(originalCellImage.size.height)px
+
+                Preprocessed Image Size:
+                  Width: \(preprocessedCellImage.size.width)px
+                  Height: \(preprocessedCellImage.size.height)px
+
+                Extracted Text:
+                '\(extractedText)'
+                """
+            try dimensionsInfo.write(to: dimensionsURL, atomically: true, encoding: .utf8)
+
+        } catch {
+            // Silently fail - this is debug output only
+        }
     }
     
     private func formatAsCSV(_ table: [[String]]) -> String {
         var lines: [String] = []
         for row in table {
+            // Defensive approach: Always quote all fields (RFC 4180 compliant)
             let escapedRow = row.map { cell -> String in
-                if cell.contains(",") || cell.contains("\"") || cell.contains("\n") {
-                    let escaped = cell.replacingOccurrences(of: "\"", with: "\"\"")
-                    return "\"\(escaped)\""
-                }
-                return cell
+                // Escape any double quotes by doubling them
+                let escaped = cell.replacingOccurrences(of: "\"", with: "\"\"")
+                // Always wrap in double quotes (defensive CSV)
+                return "\"\(escaped)\""
             }
             lines.append(escapedRow.joined(separator: ","))
         }
+        // Join rows with newlines (newlines within cells are preserved inside quotes)
         return lines.joined(separator: "\n")
     }
     

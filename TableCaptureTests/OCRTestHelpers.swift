@@ -61,9 +61,9 @@ func loadTestImage(named: String) throws -> NSImage {
 
 /// Run a complete OCR test with the given test case
 @MainActor
-func runOCRTest(testCase: TableTestCase, format: TableFormat) async throws -> String {
+func runOCRTest(testCase: TableTestCase, format: TableFormat, testName: String? = nil) async throws -> String {
     let image = try loadTestImage(named: testCase.imageName)
-    let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false)
+    let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false, testName: testName)
 
     // Set the grid lines
     viewModel.verticalLines = testCase.verticalLines

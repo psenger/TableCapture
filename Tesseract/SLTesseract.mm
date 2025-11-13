@@ -17,7 +17,9 @@
 #import "include/leptonica/allheaders.h" // required for pix related functions
 
 
-@interface SLTesseract ()
+@interface SLTesseract () {
+    int _psmMode;
+}
 
 // representation of the base API
 @property (nonatomic, assign, readonly) tesseract::TessBaseAPI *tesseract;
@@ -35,17 +37,28 @@
     _tesseract = new tesseract::TessBaseAPI();
     // _monitor = new ETEXT_DESC(); // No longer supporting monitoring
     _absoluteDataPath = [[NSBundle mainBundle].bundlePath stringByAppendingString:@"/Contents/Resources/tessdata"];
-    
+    _psmMode = -1; // Default: no PSM mode set
+
     setenv("TESSDATA_PREFIX", _absoluteDataPath.fileSystemRepresentation, 1);
-    
+
     return self;
 }
 
 
+- (void)configureWithPSM:(int)psmMode {
+    // Store PSM mode to apply after Init()
+    _psmMode = psmMode;
+}
+
 - (NSString*)recognize:(NSImage*)image {
-    
+
     // initiallize the tesseract
     _tesseract->Init(_absoluteDataPath.fileSystemRepresentation, self.language.UTF8String);
+
+    // Set PSM mode AFTER Init() - Init() can reset configurations
+    if (_psmMode >= 0) {
+        _tesseract->SetPageSegMode(static_cast<tesseract::PageSegMode>(_psmMode));
+    }
     
     /* No longer supporting monitoring
     // set the maximum recognition time
@@ -212,27 +225,30 @@
 
 - (Pix *)pixForImage:(NSImage *)image
 {
-    CGImageRef cg  = [image CGImageForProposedRect:NULL context:NULL hints:NULL];
-    unsigned long width  = CGImageGetWidth (cg),
-    height = CGImageGetHeight (cg);
-    
-    l_uint32* pixels;
-    pixels = (l_uint32 *) malloc(width * height * sizeof(l_uint32));
-    memset(pixels, 0, width * height * sizeof(l_uint32));
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    CGContextRef context =
-    CGBitmapContextCreate(pixels, width, height, 8, width * sizeof(uint32_t), colorSpace,
-                          kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedLast);
-    CGContextDrawImage(context, CGRectMake(0, 0, width, height), cg);
-    
-    CGContextRelease(context);
-    CGColorSpaceRelease(colorSpace);
-    
-    Pix* pix = pixCreate((l_uint32)width, (l_uint32)height, (l_uint32)CGImageGetBitsPerPixel(cg));
-    pixFreeData(pix);
-    pixSetData(pix, pixels);
-    pixSetYRes(pix, (l_int32)300);
-    
+    // Convert NSImage to PNG data and use Leptonica's native PNG reader
+    // This avoids all the pixel format conversion issues
+    NSData *tiffData = [image TIFFRepresentation];
+    if (!tiffData) {
+        return NULL;
+    }
+
+    NSBitmapImageRep *bitmapRep = [NSBitmapImageRep imageRepWithData:tiffData];
+    if (!bitmapRep) {
+        return NULL;
+    }
+
+    NSData *pngData = [bitmapRep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+    if (!pngData) {
+        return NULL;
+    }
+
+    // Use Leptonica's pixReadMemPng to read the PNG data directly
+    // This handles all the pixel format, color space, and bit depth conversions correctly
+    Pix *pix = pixReadMemPng((const l_uint8 *)[pngData bytes], [pngData length]);
+    if (pix) {
+        pixSetYRes(pix, (l_int32)300);
+    }
+
     return pix;
 }
 
