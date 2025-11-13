@@ -63,8 +63,24 @@ struct TableEditorView: View {
                     }
                 }
 
-                // Row 2: Multi-line option and Action Buttons
+                // Row 2: OCR Engine, Multi-line option and Action Buttons
                 HStack(spacing: 8) {
+                    // OCR Engine Picker
+                    HStack(spacing: 4) {
+                        Text("OCR Engine:")
+                            .foregroundColor(.secondary)
+                        Picker("", selection: $viewModel.selectedOCREngine) {
+                            ForEach(OCREngineType.allCases) { engine in
+                                Text(engine.rawValue).tag(engine)
+                            }
+                        }
+                        .frame(width: 150)
+                        .onChange(of: viewModel.selectedOCREngine) { oldValue, newValue in
+                            viewModel.switchOCREngine(to: newValue)
+                        }
+                        .help("Tesseract: Better for single letters\nApple Vision: Better for whole words")
+                    }
+
                     Toggle("Preserve multi-line formatting", isOn: $viewModel.preserveMultilineFormatting)
                         .help("When enabled:\n• Markdown: Lines joined with <br/>\n• CSV: Lines joined with \\n (cell quoted)")
 
@@ -322,6 +338,13 @@ struct GridLineView: View {
 
 // MARK: - View Model
 
+enum OCREngineType: String, CaseIterable, Identifiable {
+    case tesseract = "Tesseract"
+    case vision = "Apple Vision"
+
+    var id: String { rawValue }
+}
+
 class TableEditorViewModel: ObservableObject {
     let originalImage: NSImage
     @Published var displayImage: NSImage?
@@ -329,6 +352,7 @@ class TableEditorViewModel: ObservableObject {
     @Published var horizontalLines: [CGFloat] = []
     @Published var selectedLine: GridLine?
     @Published var preserveMultilineFormatting: Bool = false
+    @Published var selectedOCREngine: OCREngineType = .tesseract
 
     var imageSize: CGSize {
         originalImage.size
@@ -347,10 +371,12 @@ class TableEditorViewModel: ObservableObject {
     // Shared timestamp directory for the entire test run (class variable)
     private static var sharedTimestampDir: String?
 
-    init(image: NSImage, autoDetectGrid: Bool = true, testName: String? = nil, ocrEngine: CellOCREngine? = nil) {
+    init(image: NSImage, autoDetectGrid: Bool = true, testName: String? = nil) {
         self.originalImage = image
-        // Default to Tesseract if no engine specified
-        self.ocrEngine = ocrEngine ?? TesseractOCREngine(preserveMultilineFormatting: false)
+        // Default to Tesseract OCR engine
+        self.ocrEngine = TesseractOCREngine(preserveMultilineFormatting: false)
+        // Alternative: Use Apple Vision OCR engine
+        // self.ocrEngine = VisionOCREngine(preserveMultilineFormatting: false)
         self.displayImage = image
         self.debugTestName = testName
 
@@ -497,7 +523,17 @@ class TableEditorViewModel: ObservableObject {
         
         return clusters
     }
-    
+
+    func switchOCREngine(to engineType: OCREngineType) {
+        selectedOCREngine = engineType
+        switch engineType {
+        case .tesseract:
+            ocrEngine = TesseractOCREngine(preserveMultilineFormatting: preserveMultilineFormatting)
+        case .vision:
+            ocrEngine = VisionOCREngine(preserveMultilineFormatting: preserveMultilineFormatting)
+        }
+    }
+
     func addColumn() {
         // Add a vertical line in the middle of the widest gap
         if verticalLines.isEmpty {
@@ -677,181 +713,47 @@ class TableEditorViewModel: ObservableObject {
     // MARK: - OCR Preprocessing
 
     private func preprocessCellForOCR(_ cellImage: NSImage) -> NSImage {
-        // Guard extracts the CGImage from NSImage, which is needed for low-level image processing
-        // operations like upscaling, grayscale conversion, contrast enhancement, etc.
-        // If extraction fails (rare), we safely return the original image unchanged.
-        guard let cgImage = cellImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+        // Create chainable ProcessedImage wrapper
+        guard let processed = ProcessedImage(nsImage: cellImage) else {
             return cellImage
         }
 
-        // Just return the original cell image without any preprocessing
-        return cellImage
-
-        // Step 1: Upscale if the cell is too small (DISABLED)
-        // let minCellHeight = 40  // Tesseract works best with text height >= 30-40px
-        // var processedImage = cgImage
+        // Currently: No preprocessing applied (return original)
+        // To enable preprocessing, uncomment and chain operations as needed:
         //
-        // if cgImage.height < minCellHeight {
-        //     let scaleFactor = max(2.0, Double(minCellHeight) / Double(cgImage.height))
-        //     processedImage = upscaleCellImage(cgImage, scaleFactor: scaleFactor)
+        // SUGGESTED USAGE EXAMPLES:
         //
-        //     #if DEBUG
-        //     print("    📏 Upscaled cell from \(cgImage.height)px to \(processedImage.height)px (scale: \(String(format: "%.1f", scaleFactor))x)")
-        //     #endif
-        // }
+        // 1. Full preprocessing pipeline (upscale → grayscale → contrast → binarize):
+        // let result = processed
+        //     .upscaleToMinHeight(40)           // Upscale small cells to 40px minimum
+        //     .grayscale()                       // Convert to grayscale
+        //     .enhanceContrast(contrast: 1.3)    // Boost contrast by 30%
+        //     .binarize(exposure: 0.5)           // Convert to pure black/white
         //
-        // return NSImage(cgImage: processedImage, size: NSSize(width: processedImage.width, height: processedImage.height))
+        // 2. Selective pipeline (only upscale and contrast):
+        // let result = processed
+        //     .upscale(factor: 2.0)              // Double the size
+        //     .enhanceContrast(contrast: 1.5, brightness: 0.1)
+        //
+        // 3. Custom parameters for Tesseract (works better with higher resolution):
+        // let result = processed
+        //     .upscale(factor: 3.0)              // Triple size for Tesseract
+        //     .upscaleToMinHeight(60)            // Ensure minimum 60px height
+        //     .binarize(exposure: 0.7, threshold: 2.5)
+        //
+        // 4. Custom parameters for Apple Vision (better with contrast, not binarized):
+        // let result = processed
+        //     .upscale(factor: 2.0)              // Moderate upscaling
+        //     .enhanceContrast(contrast: 1.5, brightness: 0.1)
+        //
+        // 5. Minimal preprocessing (just upscale):
+        // let result = processed
+        //     .upscaleToMinHeight(40)
+        //
+        // Note: You can access metadata to see what operations were applied:
+        // print("Preprocessing applied: \(result.metadata)")
 
-        // Step 2: Convert to grayscale
-        // let grayscaleImage = convertToGrayscale(processedImage)
-
-        // Step 3: Enhance contrast
-        // let contrastedImage = enhanceContrast(grayscaleImage)
-
-        // Step 4: Binarize (convert to pure black and white)
-        // let binarizedImage = binarizeImage(contrastedImage)
-
-        // return NSImage(cgImage: binarizedImage, size: NSSize(width: binarizedImage.width, height: binarizedImage.height))
-    }
-
-    private func upscaleCellImage(_ cgImage: CGImage, scaleFactor: Double) -> CGImage {
-        let newWidth = Int(Double(cgImage.width) * scaleFactor)
-        let newHeight = Int(Double(cgImage.height) * scaleFactor)
-
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        // Use premultiplied alpha to preserve image transparency and anti-aliasing
-        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)
-
-        guard let context = CGContext(
-            data: nil,
-            width: newWidth,
-            height: newHeight,
-            bitsPerComponent: 8,
-            bytesPerRow: newWidth * 4,
-            space: colorSpace,
-            bitmapInfo: bitmapInfo.rawValue
-        ) else {
-            return cgImage
-        }
-
-        // DO NOT fill with white - preserve original image appearance
-        // High quality interpolation for smooth upscaling
-        context.interpolationQuality = .high
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
-
-        return context.makeImage() ?? cgImage
-    }
-
-    private func convertToGrayscale(_ cgImage: CGImage) -> CGImage {
-        let colorSpace = CGColorSpaceCreateDeviceGray()
-        let width = cgImage.width
-        let height = cgImage.height
-
-        guard let context = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: width,
-            space: colorSpace,
-            bitmapInfo: CGImageAlphaInfo.none.rawValue
-        ) else {
-            return cgImage
-        }
-
-        // Draw original image in grayscale
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-        return context.makeImage() ?? cgImage
-    }
-
-    private func enhanceContrast(_ cgImage: CGImage) -> CGImage {
-        let ciImage = CIImage(cgImage: cgImage)
-        let filter = CIFilter(name: "CIColorControls")
-        filter?.setValue(ciImage, forKey: kCIInputImageKey)
-        filter?.setValue(1.3, forKey: kCIInputContrastKey)  // Increase contrast by 30%
-        filter?.setValue(0.05, forKey: kCIInputBrightnessKey)  // Slight brightness boost
-
-        guard let outputImage = filter?.outputImage,
-              let cgContext = CIContext(options: nil).createCGImage(outputImage, from: outputImage.extent) else {
-            return cgImage
-        }
-
-        return cgContext
-    }
-
-    private func binarizeImage(_ cgImage: CGImage) -> CGImage {
-        // Use Otsu's thresholding approximation via CIFilter
-        let ciImage = CIImage(cgImage: cgImage)
-
-        // Apply exposure adjustment to create strong black/white separation
-        let exposureFilter = CIFilter(name: "CIExposureAdjust")
-        exposureFilter?.setValue(ciImage, forKey: kCIInputImageKey)
-        exposureFilter?.setValue(0.5, forKey: kCIInputEVKey)
-
-        guard let exposedImage = exposureFilter?.outputImage else {
-            return cgImage
-        }
-
-        // Apply color threshold to binarize
-        let thresholdFilter = CIFilter(name: "CIColorControls")
-        thresholdFilter?.setValue(exposedImage, forKey: kCIInputImageKey)
-        thresholdFilter?.setValue(2.0, forKey: kCIInputContrastKey)  // Very high contrast
-        thresholdFilter?.setValue(0, forKey: kCIInputSaturationKey)  // Remove any color
-
-        guard let outputImage = thresholdFilter?.outputImage,
-              let binarized = CIContext(options: nil).createCGImage(outputImage, from: outputImage.extent) else {
-            return cgImage
-        }
-
-        return binarized
-    }
-
-    private func upscaleImageForOCR(_ cgImage: CGImage) -> CGImage {
-        let minRecommendedHeight = 1200 // Minimum height for good OCR (increased from 800)
-        let currentHeight = cgImage.height
-
-        // If image is already large enough, return as-is
-        guard currentHeight < minRecommendedHeight else {
-            return cgImage
-        }
-
-        // Calculate scale factor (at least 2x, or whatever brings us to minRecommendedHeight)
-        let scaleFactor = max(2.0, Double(minRecommendedHeight) / Double(currentHeight))
-        let newWidth = Int(Double(cgImage.width) * scaleFactor)
-        let newHeight = Int(Double(cgImage.height) * scaleFactor)
-
-        // Create upscaled image with standardized format
-        // IMPORTANT: Use noneSkipLast (no alpha) for better OCR compatibility
-        // Vision OCR works better with images that have no alpha channel
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)
-
-        guard let context = CGContext(
-            data: nil,
-            width: newWidth,
-            height: newHeight,
-            bitsPerComponent: 8,
-            bytesPerRow: newWidth * 4,
-            space: colorSpace,
-            bitmapInfo: bitmapInfo
-        ) else {
-            return cgImage
-        }
-
-        // Fill with white background (since we're removing alpha)
-        context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
-
-        // Use high quality interpolation
-        context.interpolationQuality = .high
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
-
-        if let upscaledImage = context.makeImage() {
-            return upscaledImage
-        } else {
-            return cgImage
-        }
+        return processed.toNSImage()
     }
 
     private func createCellsFromGrid() -> [[CGRect]] {
