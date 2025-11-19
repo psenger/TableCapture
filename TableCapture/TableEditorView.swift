@@ -681,9 +681,14 @@ class TableEditorViewModel: ObservableObject {
         let imageWidth = CGFloat(cgImage.width)
         let imageHeight = CGFloat(cgImage.height)
 
+        // CGImage uses bottom-left origin (y=0 is bottom)
+        // Grid coordinates use bottom-left origin too (from Vision framework)
+        // So flip Y to convert to CGImage coordinates
+        let flippedY = 1.0 - cellBounds.origin.y - cellBounds.size.height
+
         // Convert normalized coordinates to pixel coordinates
         let x = cellBounds.origin.x * imageWidth
-        let y = cellBounds.origin.y * imageHeight
+        let y = flippedY * imageHeight
         let width = cellBounds.size.width * imageWidth
         let height = cellBounds.size.height * imageHeight
 
@@ -744,7 +749,7 @@ class TableEditorViewModel: ObservableObject {
 
     private func createCellsFromGrid() -> [[CGRect]] {
         let sortedVertical = ([0.0] + verticalLines + [1.0]).sorted()
-        let sortedHorizontal = Array(([0.0] + horizontalLines + [1.0]).sorted().reversed())
+        let sortedHorizontal = ([0.0] + horizontalLines + [1.0]).sorted()
 
         var cells: [[CGRect]] = []
 
@@ -762,7 +767,7 @@ class TableEditorViewModel: ObservableObject {
             cells.append(row)
         }
 
-        // Reverse to get top-to-bottom order (we built bottom-to-top due to CGImage coordinates)
+        // Reverse to get top-to-bottom reading order
         return cells.reversed()
     }
     
