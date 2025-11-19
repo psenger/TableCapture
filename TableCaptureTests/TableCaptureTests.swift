@@ -17,7 +17,7 @@ struct TableCaptureTests {
     @Test("CSV escaping with commas")
     @MainActor
     func testCSVEscapingCommas() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         let table = [["Name", "Age"], ["John, Jr.", "25"]]
         let csv = viewModel.formatAsCSV(table)
 
@@ -28,7 +28,7 @@ struct TableCaptureTests {
     @Test("CSV escaping with quotes")
     @MainActor
     func testCSVEscapingQuotes() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         let table = [["Product", "Description"], ["Widget", "A \"super\" item"]]
         let csv = viewModel.formatAsCSV(table)
 
@@ -38,7 +38,7 @@ struct TableCaptureTests {
     @Test("CSV handles empty cells")
     @MainActor
     func testCSVEmptyCells() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         let table = [["A", "B", "C"], ["1", "", "3"]]
         let csv = viewModel.formatAsCSV(table)
 
@@ -50,7 +50,7 @@ struct TableCaptureTests {
     @Test("Markdown table structure")
     @MainActor
     func testMarkdownTableStructure() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         let table = [["Name", "Age"], ["John", "25"], ["Jane", "30"]]
         let markdown = viewModel.formatAsMarkdown(table)
 
@@ -63,7 +63,7 @@ struct TableCaptureTests {
     @Test("Markdown escapes pipe characters")
     @MainActor
     func testMarkdownEscapesPipes() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         let table = [["Command", "Description"], ["ls | grep", "Pipe example"]]
         let markdown = viewModel.formatAsMarkdown(table)
 
@@ -73,7 +73,7 @@ struct TableCaptureTests {
     @Test("Markdown handles uneven row lengths")
     @MainActor
     func testMarkdownUnevenRows() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         let table = [["A", "B", "C"], ["1", "2"]]  // Second row is shorter
         let markdown = viewModel.formatAsMarkdown(table)
 
@@ -85,7 +85,7 @@ struct TableCaptureTests {
     @Test("Add column creates line in center")
     @MainActor
     func testAddColumn() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         viewModel.verticalLines.removeAll()
 
         viewModel.addColumn()
@@ -97,7 +97,7 @@ struct TableCaptureTests {
     @Test("Add row creates line in center")
     @MainActor
     func testAddRow() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         viewModel.horizontalLines.removeAll()
 
         viewModel.addRow()
@@ -109,7 +109,7 @@ struct TableCaptureTests {
     @Test("Remove selected vertical line")
     @MainActor
     func testRemoveSelectedVerticalLine() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         viewModel.verticalLines = [0.3, 0.5, 0.7]
         viewModel.selectedLine = GridLine.vertical(1)
 
@@ -123,7 +123,7 @@ struct TableCaptureTests {
     @Test("Remove selected horizontal line")
     @MainActor
     func testRemoveSelectedHorizontalLine() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         viewModel.horizontalLines = [0.3, 0.5, 0.7]
         viewModel.selectedLine = GridLine.horizontal(1)
 
@@ -137,7 +137,7 @@ struct TableCaptureTests {
     @Test("Clear all lines removes everything")
     @MainActor
     func testClearAllLines() async throws {
-        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: createTestImage(), autoDetectGrid: false, testName: "UnitTest")
         viewModel.verticalLines = [0.3, 0.5, 0.7]
         viewModel.horizontalLines = [0.2, 0.8]
         viewModel.selectedLine = GridLine.vertical(0)

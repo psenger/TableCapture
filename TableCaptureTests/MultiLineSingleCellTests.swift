@@ -20,7 +20,7 @@ struct MultiLineSingleCellTests {
         imageName: "simple-hello-world",
         verticalLines: [],           // No grid lines - just one cell
         horizontalLines: [],         // No grid lines - just one cell
-        expectedCSV: "hello world",  // Lines merged with space
+        expectedCSV: "\"hello world\"",  // Lines merged with space
         expectedMarkdown: """
         | hello world |
         | --- |
@@ -29,7 +29,7 @@ struct MultiLineSingleCellTests {
 
     @Test("Multi-line single cell - CSV extraction")
     func testSimpleHelloWorldCSV() async throws {
-        let result = try await runOCRTest(testCase: Self.simpleHelloWorld, format: .csv)
+        let result = try await runOCRTest(testCase: Self.simpleHelloWorld, format: .csv, testName: "MultiLineSingleCell")
 
         let normalizedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedExpected = Self.simpleHelloWorld.expectedCSV.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -40,7 +40,7 @@ struct MultiLineSingleCellTests {
 
     @Test("Multi-line single cell - Markdown extraction")
     func testSimpleHelloWorldMarkdown() async throws {
-        let result = try await runOCRTest(testCase: Self.simpleHelloWorld, format: .markdown)
+        let result = try await runOCRTest(testCase: Self.simpleHelloWorld, format: .markdown, testName: "MultiLineSingleCell")
 
         let normalizedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedExpected = Self.simpleHelloWorld.expectedMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -53,7 +53,7 @@ struct MultiLineSingleCellTests {
     @MainActor
     func debugSimpleHelloWorld() async throws {
         let image = try loadTestImage(named: Self.simpleHelloWorld.imageName)
-        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false, testName: "MultiLineSingleCell")
 
         viewModel.verticalLines = Self.simpleHelloWorld.verticalLines
         viewModel.horizontalLines = Self.simpleHelloWorld.horizontalLines

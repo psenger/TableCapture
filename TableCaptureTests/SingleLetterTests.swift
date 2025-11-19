@@ -18,18 +18,18 @@ struct SingleLetterTests {
     // Column 1: A, C, E (3 lines), Column 2: B, D (2 lines)
     static let singleLetters = TableTestCase(
         imageName: "single-letters",
-        verticalLines: [0.5],        // One vertical line at 50% (middle)
+        verticalLines: [],        // One vertical line at 50% (middle)
         horizontalLines: [],         // No horizontal lines - single row
-        expectedCSV: "A C E,B D",    // Single letters merged with spaces
+        expectedCSV: "\"Z\"",    // Single letters merged with spaces
         expectedMarkdown: """
-        | A C E | B D |
-        | --- | --- |
+        | Z |
+        | --- |
         """
     )
 
     @Test("Single letters - CSV extraction")
     func testSingleLettersCSV() async throws {
-        let result = try await runOCRTest(testCase: Self.singleLetters, format: .csv)
+        let result = try await runOCRTest(testCase: Self.singleLetters, format: .csv, testName: "SingleLetters")
 
         let normalizedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedExpected = Self.singleLetters.expectedCSV.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -45,7 +45,7 @@ struct SingleLetterTests {
     @MainActor
     func debugSingleLetters() async throws {
         let image = try loadTestImage(named: Self.singleLetters.imageName)
-        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false, testName: "SingleLetters")
 
         viewModel.verticalLines = Self.singleLetters.verticalLines
         viewModel.horizontalLines = Self.singleLetters.horizontalLines

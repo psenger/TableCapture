@@ -19,7 +19,7 @@ struct SimpleSingleCellTests {
         imageName: "simple-hello",
         verticalLines: [],           // No grid lines - just one cell
         horizontalLines: [],         // No grid lines - just one cell
-        expectedCSV: "Hello",
+        expectedCSV: "\"Hello\"",
         expectedMarkdown: """
         | Hello |
         | --- |
@@ -29,7 +29,7 @@ struct SimpleSingleCellTests {
     @Test("Simple single cell - CSV extraction")
     func testSimpleHelloCSV() async throws {
         print("\n🧪 Testing simple-hello through production code path...")
-        let result = try await runOCRTest(testCase: Self.simpleHello, format: .csv)
+        let result = try await runOCRTest(testCase: Self.simpleHello, format: .csv, testName: "SimpleSingleCell")
         print("Result from production path: '\(result)'")
 
         let normalizedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -41,7 +41,7 @@ struct SimpleSingleCellTests {
 
     @Test("Simple single cell - Markdown extraction")
     func testSimpleHelloMarkdown() async throws {
-        let result = try await runOCRTest(testCase: Self.simpleHello, format: .markdown)
+        let result = try await runOCRTest(testCase: Self.simpleHello, format: .markdown, testName: "SimpleSingleCell")
 
         let normalizedResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedExpected = Self.simpleHello.expectedMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -54,7 +54,7 @@ struct SimpleSingleCellTests {
     @MainActor
     func debugSimpleHello() async throws {
         let image = try loadTestImage(named: Self.simpleHello.imageName)
-        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false)
+        let viewModel = TableEditorViewModel(image: image, autoDetectGrid: false, testName: "SimpleSingleCell")
 
         viewModel.verticalLines = Self.simpleHello.verticalLines
         viewModel.horizontalLines = Self.simpleHello.horizontalLines
