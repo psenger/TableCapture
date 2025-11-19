@@ -84,12 +84,12 @@
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "DEBUG_IMAGE_PATH"
-            value = "/Users/psenger/Developer/TableCapture/TableCaptureTests/Resources/complext-layout-multi-line-multi-col-multi-row.png"
+            value = "TableCaptureTests/Resources/mixed-screenshot.png"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "DEBUG_OUTPUT_DIR"
-            value = "/Users/psenger/Desktop/ocr_debug"
+            value = "/tmp/tablecapture-debug"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

@@ -21,7 +21,12 @@ struct TableEditorView: View {
         self.image = image
         self.onComplete = onComplete
         self.onCancel = onCancel
+        #if DEBUG
+        // Pass a test name in DEBUG mode to enable debug output
+        _viewModel = StateObject(wrappedValue: TableEditorViewModel(image: image, testName: "app-debug"))
+        #else
         _viewModel = StateObject(wrappedValue: TableEditorViewModel(image: image))
+        #endif
     }
     
     var body: some View {
@@ -63,24 +68,8 @@ struct TableEditorView: View {
                     }
                 }
 
-                // Row 2: OCR Engine, Multi-line option and Action Buttons
+                // Row 2: Multi-line option and Action Buttons
                 HStack(spacing: 8) {
-                    // OCR Engine Picker
-                    HStack(spacing: 4) {
-                        Text("OCR Engine:")
-                            .foregroundColor(.secondary)
-                        Picker("", selection: $viewModel.selectedOCREngine) {
-                            ForEach(OCREngineType.allCases) { engine in
-                                Text(engine.rawValue).tag(engine)
-                            }
-                        }
-                        .frame(width: 150)
-                        .onChange(of: viewModel.selectedOCREngine) { oldValue, newValue in
-                            viewModel.switchOCREngine(to: newValue)
-                        }
-                        .help("Tesseract: Better for single letters\nApple Vision: Better for whole words")
-                    }
-
                     Toggle("Preserve multi-line formatting", isOn: $viewModel.preserveMultilineFormatting)
                         .help("When enabled:\n• Markdown: Lines joined with <br/>\n• CSV: Lines joined with \\n (cell quoted)")
 
@@ -352,13 +341,17 @@ class TableEditorViewModel: ObservableObject {
     @Published var horizontalLines: [CGFloat] = []
     @Published var selectedLine: GridLine?
     @Published var preserveMultilineFormatting: Bool = false
-    @Published var selectedOCREngine: OCREngineType = .tesseract
 
     var imageSize: CGSize {
         originalImage.size
     }
 
     private let extractor = AppleVisionExtractor()
+
+    // MARK: - OCR Engine Selection (Testing/Development Only)
+    // Change this constant to switch between OCR engines for testing
+    // Options: .tesseract or .vision
+    private static let defaultOCREngine: OCREngineType = .vision
 
     // OCR engine for text recognition (pluggable)
     private var ocrEngine: CellOCREngine
@@ -373,10 +366,13 @@ class TableEditorViewModel: ObservableObject {
 
     init(image: NSImage, autoDetectGrid: Bool = true, testName: String? = nil) {
         self.originalImage = image
-        // Default to Tesseract OCR engine
-        self.ocrEngine = TesseractOCREngine(preserveMultilineFormatting: false)
-        // Alternative: Use Apple Vision OCR engine
-        // self.ocrEngine = VisionOCREngine(preserveMultilineFormatting: false)
+        // Initialize OCR engine based on compile-time constant
+        switch TableEditorViewModel.defaultOCREngine {
+        case .tesseract:
+            self.ocrEngine = TesseractOCREngine(preserveMultilineFormatting: false)
+        case .vision:
+            self.ocrEngine = VisionOCREngine(preserveMultilineFormatting: false)
+        }
         self.displayImage = image
         self.debugTestName = testName
 
@@ -522,16 +518,6 @@ class TableEditorViewModel: ObservableObject {
         }
         
         return clusters
-    }
-
-    func switchOCREngine(to engineType: OCREngineType) {
-        selectedOCREngine = engineType
-        switch engineType {
-        case .tesseract:
-            ocrEngine = TesseractOCREngine(preserveMultilineFormatting: preserveMultilineFormatting)
-        case .vision:
-            ocrEngine = VisionOCREngine(preserveMultilineFormatting: preserveMultilineFormatting)
-        }
     }
 
     func addColumn() {
