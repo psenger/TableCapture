@@ -45,42 +45,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItem?.menu = menu
 
-        #if DEBUG
-        // Auto-load test image in DEBUG mode if DEBUG_IMAGE_PATH environment variable is set
-        if let debugImagePath = ProcessInfo.processInfo.environment["DEBUG_IMAGE_PATH"] {
-            var imageURL = URL(fileURLWithPath: debugImagePath)
-
-            // If file doesn't exist at absolute path, try relative to project
-            if !FileManager.default.fileExists(atPath: imageURL.path) {
-                let projectPath = "/Users/psenger/Developer/TableCapture/"
-                let relativePath = projectPath + debugImagePath
-                imageURL = URL(fileURLWithPath: relativePath)
-            }
-
-            if FileManager.default.fileExists(atPath: imageURL.path) {
-                print("🔧 DEBUG MODE: Auto-loading test image from \(imageURL.path)")
-
-                // Copy to temp directory (sandbox accessible)
-                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("debug-test-image.png")
-                do {
-                    // Remove old temp file if exists
-                    try? FileManager.default.removeItem(at: tempURL)
-                    // Copy to temp (this works even with sandbox)
-                    try FileManager.default.copyItem(at: imageURL, to: tempURL)
-                    print("✅ Copied to temp: \(tempURL.path)")
-
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        self.showTableEditor(imageURL: tempURL)
-                    }
-                } catch {
-                    print("❌ Failed to copy image to temp: \(error)")
-                }
-            } else {
-                print("⚠️ DEBUG MODE: Image not found at \(imageURL.path)")
-                print("⚠️ Tried: \(debugImagePath)")
-            }
-        }
-        #endif
+        // DEBUG: Auto-load test image feature (disabled for production)
+        // #if DEBUG
+        // if let debugImagePath = ProcessInfo.processInfo.environment["DEBUG_IMAGE_PATH"] {
+        //     var imageURL = URL(fileURLWithPath: debugImagePath)
+        //
+        //     if !FileManager.default.fileExists(atPath: imageURL.path) {
+        //         let projectPath = "/Users/psenger/Developer/TableCapture/"
+        //         let relativePath = projectPath + debugImagePath
+        //         imageURL = URL(fileURLWithPath: relativePath)
+        //     }
+        //
+        //     if FileManager.default.fileExists(atPath: imageURL.path) {
+        //         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("debug-test-image.png")
+        //         do {
+        //             try? FileManager.default.removeItem(at: tempURL)
+        //             try FileManager.default.copyItem(at: imageURL, to: tempURL)
+        //             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        //                 self.showTableEditor(imageURL: tempURL)
+        //             }
+        //         } catch {
+        //             // Debug image load failed
+        //         }
+        //     }
+        // }
+        // #endif
     }
     
     @objc func menuButtonClicked() {

@@ -33,8 +33,10 @@ class TesseractExtractor: TableExtractor {
             return
         }
 
+        #if DEBUG
         print("🔍 Tesseract OCR result:")
         print(recognizedText)
+        #endif
 
         // Simple processing - Tesseract returns text with newlines
         // For now, just return the raw text formatted appropriately
