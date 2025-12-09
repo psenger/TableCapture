@@ -1,288 +1,121 @@
-# Table Capture
+# TableCapture
 
-A lightweight macOS menu bar app that captures screenshots of tables and converts them to CSV or Markdown format and puts it in the buffer suitable for pasting.
+**Transform any table screenshot into usable data in seconds.**
+
+A lightweight macOS menu bar app that captures screenshots of tables and converts them to CSV or Markdown format, ready to paste anywhere.
 
 ![macOS](https://img.shields.io/badge/macOS-12.3+-blue.svg)
 ![Swift](https://img.shields.io/badge/Swift-5.5+-orange.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)
 
+![TableCapture screenshot](.github/hero.webp)
 
-### Installing the App
+---
 
-Since this app is not signed with a paid Developer ID certificate, macOS will show a security warning on first launch.
+## Why TableCapture?
 
-**To install:**
-1. Download and open the `TableCapture.dmg`
-2. Drag `TableCapture.app` to your Applications folder
-3. **Right-click** the app → **Open** (don't double-click!)
-4. Click **Open** when prompted
-5. Grant Screen Recording permission in System Settings
+Ever needed to copy data from a table in a PDF, screenshot, or image? Manually retyping is tedious and error-prone. TableCapture solves this with one click:
 
-After the first launch, you can open it normally.
+1. **Click** the menu bar icon
+2. **Select** the table area on your screen
+3. **Paste** - your data is ready in CSV or Markdown
+
+No more manual data entry. No more copy-paste nightmares.
+
+---
 
 ## Features
 
-- **Menu Bar App**: Lightweight application that runs from the macOS menu bar
-- **Interactive Screenshot**: Uses native macOS screenshot tool for precise table selection
-- **Dual OCR Support**:
-  - Primary: Apple Vision framework for fast, accurate text recognition
-  - Fallback: Tesseract OCR for challenging cases (e.g., single letters)
-- **Multiple Output Formats**: Export as CSV or Markdown
-- **Clipboard Integration**: Automatically copies result to clipboard for easy pasting
+| Feature | Description |
+|---------|-------------|
+| **Menu Bar App** | Lives quietly in your menu bar - always ready, never in the way |
+| **Smart OCR** | Dual-engine recognition using Apple Vision + Tesseract fallback |
+| **Multiple Formats** | Export as CSV for spreadsheets or Markdown for documentation |
+| **Instant Clipboard** | Results copied automatically - just paste where you need it |
+| **Native Performance** | Built with Swift, optimized for Apple Silicon |
 
-## License & Third-Party Acknowledgments
+![Before and after comparison](.github/before-after.webp)
 
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See [LICENSE.md](LICENSE.md) for details.
+---
 
-**Third-Party Libraries**: This application uses several open-source libraries for OCR functionality, including Tesseract OCR, Leptonica, and various image processing libraries. See [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md) for complete license information and attributions.
+## Download
 
-⚠️ **Note**: The project includes LibJPEG which has a license (IJG) that may not be fully compatible with GPL v3. See ACKNOWLEDGMENTS.md for details and recommended solutions before commercial distribution.
+### Requirements
 
-## Development
+- macOS 12.3 (Monterey) or later
+- Apple Silicon Mac
+
+### Get TableCapture
+
+[**Download Latest Release**](https://github.com/psenger/TableCapture/releases)
+
+---
+
+## Installation
+
+1. Download and open `TableCapture.dmg`
+2. Drag `TableCapture.app` to your Applications folder
+3. **Right-click** the app → **Open** (important for first launch)
+4. Click **Open** when prompted
+5. Grant Screen Recording permission in System Settings
+
+![Installation steps](.github/installation.gif)
+
+> **First Launch Note**: Since this app is not signed with a paid Developer ID certificate, macOS will show a security warning on first launch. This is a one-time setup:
+> 1. Click **OK** to close the popup
+> 2. Open **System Settings** > **Privacy & Security**
+> 3. Scroll down and click **Open Anyway**
+> 4. Confirm your choice if prompted
+
+---
+
+## How It Works
 
 
-### Running tests
+### Step 1: Capture
+Click the TableCapture icon in your menu bar and draw a rectangle around any table on your screen.
 
-#### Run all tests:
+### Step 2: Process
+TableCapture's OCR engine analyzes the image, detects rows and columns, and extracts the text.
 
-```bash
-xcodebuild test -project TableCapture.xcodeproj -scheme TableCapture -destination 'platform=macOS,arch=arm64'
-```
+### Step 3: Paste
+Your formatted data is automatically copied to the clipboard. Paste it into Excel, Google Sheets, Notion, or any text editor.
 
-#### Run only the ComplexLayoutMultiColMultiRowTests:
+---
 
-```bash
-xcodebuild test -project TableCapture.xcodeproj -scheme TableCapture -destination 'platform=macOS,arch=arm64' -only-testing:TableCaptureTests/ComplexLayoutMultiColMultiRowTests
-```
+## Use Cases
 
-#### Run only the debug test to see the OCR output:
+- **Research** - Extract data from academic papers and reports
+- **Finance** - Capture financial tables from PDFs and websites
+- **Development** - Convert API documentation tables to code
+- **Data Entry** - Speed up tedious manual transcription tasks
+- **Documentation** - Quickly grab tables for your own docs
 
-```bash
-xcodebuild test -project TableCapture.xcodeproj -scheme TableCapture -destination 'platform=macOS,arch=arm64' -only-testing:TableCaptureTests/ComplexLayoutMultiColMultiRowTests/debugComplexLayout
-```
+---
 
-#### Run a specific test (CSV or Markdown):
+## Contributing
 
-```bash
-xcodebuild test -project TableCapture.xcodeproj -scheme TableCapture -destination 'platform=macOS,arch=arm64' -only-testing:TableCaptureTests/ComplexLayoutMultiColMultiRowTests/testComplexLayoutMarkdown
-```
-  
-### Building a Release
+Interested in contributing? Check out our [Contributing Guide](CONTRIBUTING.md) for development setup, testing instructions, and how to submit changes.
 
-#### Creating a Release Candidate
+---
 
-1. **Build for Release in Xcode**
-   - Select **Product → Archive** from the menu
-   - Wait for the archive to complete
-   - In the Organizer window that appears, click **Distribute App**
-   - Choose **Custom** 
-   - Choose **Copy App** and save it to a location (e.g., Desktop)
+## License
 
-2. **Locate the .app Bundle**
-   - Find `TableCapture.app` in the exported location
+TableCapture is open source software licensed under the [GNU General Public License v3.0](LICENSE.md).
 
-3. **Create a Professional DMG Installer** (with drag-to-Applications)
+This project uses several open-source libraries. See [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md) for complete license information and attributions.
 
-   ```bash
-   # Create Applications symlink next to your app
-   ln -s /Applications Applications
+---
 
-   # Create the DMG containing both the app and Applications link
-   # (saves to parent directory to avoid including the DMG in itself)
-   hdiutil create -volname "TableCapture" \
-     -srcfolder . \
-     -ov -format UDZO \
-     ../TableCapture.dmg
+## Links
 
-   # Clean up the symlink
-   rm Applications
-   ```
+- [GitHub Repository](https://github.com/psenger/TableCapture)
+- [Report an Issue](https://github.com/psenger/TableCapture/issues)
+- [Release Notes](https://github.com/psenger/TableCapture/releases)
 
-   **Done!** Your `TableCapture.dmg` now has the professional drag-to-Applications interface.
+---
 
-   When users open the DMG, they'll see your app and an Applications folder - they just drag the app to Applications to install.
-
-4. **Create a GitHub Release**
-   - Go to your repository → **Releases**
-   - Click **Draft a new release**
-   - Create a new tag (e.g., `v1.0.0`)
-   - Add release notes
-   - Upload the `TableCapture.dmg` file
-   - Publish the release
-
-### macOS Security & Permissions Issues
-
-#### Why Does Rebuilding Break Permissions?
-
-When you rebuild the app, macOS often treats it as a "different" application even though it's the same code. This happens because:
-
-1. **Code Signature Changes**: Each build gets a new signature, and macOS ties permissions (like Screen Recording) to that signature
-2. **Cached Permissions**: The old permission is still registered but for the "old" app signature
-3. **macOS Gets Confused**: It sees your app as brand new and blocks it
-
-#### Solutions
-
-##### Quick Fix (During Development)
-
-```bash
-# 1. Kill the app completely
-killall TableCapture
-
-# 2. Reset Screen Recording permissions for your app
-tccutil reset ScreenCapture com.philipasenger.TableCapture
-
-# 3. Rebuild and run in Xcode
-# You'll need to re-grant permission in System Settings → Privacy & Security → Screen Recording
-```
-
-##### Better Fix (Consistent Identity)
-
-Set a **stable code signing identity** in Xcode:
-
-1. Go to your project settings → **Signing & Capabilities**
-2. Enable **Automatically manage signing**
-3. Make sure you have a consistent **Team** selected
-4. Ensure your **Bundle Identifier** never changes (e.g., `com.yourname.TableCapture`)
-
-This helps macOS recognize your app across rebuilds.
-
-##### Nuclear Option (When All Else Fails)
-
-```bash
-# Reset ALL TCC (privacy) permissions for your app - use carefully!
-tccutil reset All com.philipasenger.TableCapture
-```
-
-⚠️ **Note**: You'll need to re-grant Screen Recording permission after each rebuild during development. This is annoying but normal for macOS security.
-
-#### For Distribution (Eventually)
-
-When you're ready to distribute the app:
-- Sign with a **Developer ID** certificate
-- **Notarize** the app with Apple
-
-This makes the signature consistent and permissions stick between launches for your users.
-
-## Design notes:
-
-OCR Feature:
-
-### **Option 1: img2table (Python) - EASIEST**
-
-This is a Python library **specifically designed** for extracting tables from images. It's perfect for your use case!
-
-Problem: external platform dep and hard to install. 
-
-**Install:**
-```bash
-pip install img2table
-pip install pytesseract
-# Also install Tesseract OCR:
-brew install tesseract
-```
-
-**Python Script** (`table_extractor.py`):
-```python
-#!/usr/bin/env python3
-import sys
-from img2table.document import Image
-from img2table.ocr import TesseractOCR
-
-def extract_table(image_path):
-    # Initialize OCR
-    ocr = TesseractOCR(n_threads=1, lang="eng")
-    
-    # Load image
-    doc = Image(src=image_path)
-    
-    # Extract tables
-    tables = doc.extract_tables(ocr=ocr, implicit_rows=True, borderless_tables=True)
-    
-    if not tables:
-        print("ERROR: No tables found in image")
-        return
-    
-    # Get first table and convert to CSV
-    table = tables[0]
-    csv_output = table.df.to_csv(index=False)
-    print(csv_output)
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python3 table_extractor.py <image_path>")
-        sys.exit(1)
-    
-    extract_table(sys.argv[1])
-```
-
-**Usage from your Swift app:**
-```swift
-task.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-task.arguments = ["/path/to/table_extractor.py", url.path]
-```
- 
-### **Option 2: Native macOS Vision Framework** 
-
-Use Apple's built-in OCR (no external dependencies, but requires custom table logic).
-
-This would be all Swift code, no external program needed:
-
-```swift
-import Vision
-import AppKit
-
-func processImage(at url: URL) {
-    guard let image = NSImage(contentsOf: url),
-          let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-        print("Failed to load image")
-        return
-    }
-    
-    let request = VNRecognizeTextRequest { request, error in
-        guard let observations = request.results as? [VNRecognizedTextObservation] else {
-            return
-        }
-        
-        // Group text by Y coordinate to detect rows
-        var rows: [Int: [(x: CGFloat, text: String)]] = [:]
-        
-        for observation in observations {
-            guard let topCandidate = observation.topCandidates(1).first else { continue }
-            
-            let y = Int(observation.boundingBox.origin.y * 1000)
-            let x = observation.boundingBox.origin.x
-            
-            if rows[y] == nil {
-                rows[y] = []
-            }
-            rows[y]?.append((x: x, text: topCandidate.string))
-        }
-        
-        // Convert to CSV
-        var csvLines: [String] = []
-        for y in rows.keys.sorted(by: >) {  // Sort top to bottom
-            let sortedCells = rows[y]!.sorted { $0.x < $1.x }  // Sort left to right
-            let line = sortedCells.map { $0.text }.joined(separator: ",")
-            csvLines.append(line)
-        }
-        
-        let csv = csvLines.joined(separator: "\n")
-        print(csv)
-        
-        // Copy to clipboard
-        DispatchQueue.main.async {
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(csv, forType: .string)
-            
-            self.showSuccessAlert()
-        }
-    }
-    
-    request.recognitionLevel = .accurate
-    
-    let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-    try? handler.perform([request])
-}
-```
-
+<p align="center">
+  <strong>Made with care for macOS</strong><br>
+  <sub>Built by Philip A Senger</sub>
+</p>
